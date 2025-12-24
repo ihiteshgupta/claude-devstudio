@@ -647,6 +647,16 @@ export const IPC_CHANNELS = {
   APPROVAL_GET: 'approval:get',
   APPROVAL_APPROVE: 'approval:approve',
   APPROVAL_REJECT: 'approval:reject',
+
+  // Autonomous Executor
+  AUTONOMOUS_START: 'autonomous:start',
+  AUTONOMOUS_STOP: 'autonomous:stop',
+  AUTONOMOUS_PAUSE: 'autonomous:pause',
+  AUTONOMOUS_RESUME: 'autonomous:resume',
+  AUTONOMOUS_STATUS: 'autonomous:status',
+  AUTONOMOUS_STATS: 'autonomous:stats',
+  AUTONOMOUS_EVENT: 'autonomous:event',
+  AUTONOMOUS_METRICS: 'autonomous:metrics',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

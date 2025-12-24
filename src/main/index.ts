@@ -11,6 +11,7 @@ import { roadmapService } from './services/roadmap.service'
 import { taskQueueService } from './services/task-queue.service'
 import { techAdvisorService } from './services/tech-advisor.service'
 import { taskDecomposerService } from './services/task-decomposer.service'
+import { autonomousExecutorService } from './services/autonomous-executor.service'
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -469,6 +470,71 @@ function setupIpcHandlers(): void {
   // Task Decomposer handlers
   ipcMain.handle(IPC_CHANNELS.DECOMPOSER_DECOMPOSE, async (_, params) => {
     return taskDecomposerService.decompose(params)
+  })
+
+  // Autonomous Executor handlers
+  ipcMain.handle(IPC_CHANNELS.AUTONOMOUS_START, async (_, config) => {
+    // Set up event forwarding to renderer
+    autonomousExecutorService.on('autonomous-started', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'started', ...data })
+    })
+    autonomousExecutorService.on('autonomous-stopped', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'stopped', ...data })
+    })
+    autonomousExecutorService.on('autonomous-paused', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'paused', ...data })
+    })
+    autonomousExecutorService.on('autonomous-resumed', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'resumed', ...data })
+    })
+    autonomousExecutorService.on('autonomous-progress', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'progress', ...data })
+    })
+    autonomousExecutorService.on('autonomous-error', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'error', ...data })
+    })
+    autonomousExecutorService.on('auto-approved', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'auto-approved', ...data })
+    })
+    autonomousExecutorService.on('manual-approval-required', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'manual-approval-required', ...data })
+    })
+    autonomousExecutorService.on('task-stuck', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'task-stuck', ...data })
+    })
+    autonomousExecutorService.on('task-retried', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'task-retried', ...data })
+    })
+    autonomousExecutorService.on('autonomous-idle-timeout', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.AUTONOMOUS_EVENT, { type: 'idle-timeout', ...data })
+    })
+
+    return autonomousExecutorService.startContinuous(config)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.AUTONOMOUS_STOP, async () => {
+    autonomousExecutorService.stop()
+    autonomousExecutorService.removeAllListeners()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.AUTONOMOUS_PAUSE, async () => {
+    autonomousExecutorService.pause()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.AUTONOMOUS_RESUME, async () => {
+    autonomousExecutorService.resume()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.AUTONOMOUS_STATUS, async () => {
+    return autonomousExecutorService.getState()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.AUTONOMOUS_STATS, async () => {
+    return autonomousExecutorService.getStats()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.AUTONOMOUS_METRICS, async (_, projectId) => {
+    return taskQueueService.getMetricsSummary(projectId)
   })
 }
 

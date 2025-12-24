@@ -467,6 +467,75 @@ const api = {
     }> => {
       return ipcRenderer.invoke(IPC_CHANNELS.DECOMPOSER_DECOMPOSE, params)
     }
+  },
+
+  // Autonomous Executor
+  autonomous: {
+    start: (config: {
+      projectId: string
+      projectPath: string
+      defaultAutonomyLevel?: AutonomyLevel
+      checkIntervalMs?: number
+      autoApproveThreshold?: number
+      maxIdleMinutes?: number
+      enableAutoApproval?: boolean
+    }): Promise<void> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.AUTONOMOUS_START, config)
+    },
+    stop: (): Promise<void> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.AUTONOMOUS_STOP)
+    },
+    pause: (): Promise<void> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.AUTONOMOUS_PAUSE)
+    },
+    resume: (): Promise<void> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.AUTONOMOUS_RESUME)
+    },
+    getStatus: (): Promise<{
+      isRunning: boolean
+      isPaused: boolean
+      currentTaskId: string | null
+      startTime: Date | null
+      lastActivityTime: Date | null
+      projectId: string | null
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.AUTONOMOUS_STATUS)
+    },
+    getStats: (): Promise<{
+      tasksCompleted: number
+      tasksFailed: number
+      tasksAutoApproved: number
+      totalExecutionTime: number
+      averageTaskTime: number
+      errorRate: number
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.AUTONOMOUS_STATS)
+    },
+    getMetrics: (projectId: string): Promise<{
+      totalTasks: number
+      successRate: number
+      avgDuration: number
+      avgRetries: number
+      byTaskType: Record<string, { count: number; successRate: number; avgDuration: number }>
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.AUTONOMOUS_METRICS, projectId)
+    },
+    onEvent: (callback: (event: {
+      type: 'autonomous-started' | 'autonomous-stopped' | 'autonomous-paused' |
+            'autonomous-resumed' | 'task-started' | 'task-completed' | 'task-failed' |
+            'auto-approved' | 'approval-required' | 'stuck-task-detected' | 'idle-timeout' | 'error'
+      data?: unknown
+      taskId?: string
+      error?: string
+    }) => void): (() => void) => {
+      const handler = (_event: IpcRendererEvent, data: Parameters<typeof callback>[0]): void => {
+        callback(data)
+      }
+      ipcRenderer.on(IPC_CHANNELS.AUTONOMOUS_EVENT, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.AUTONOMOUS_EVENT, handler)
+      }
+    }
   }
 }
 

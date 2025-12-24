@@ -246,6 +246,61 @@ class DatabaseService {
       )
     `)
 
+    // Error patterns table (for learning from failures)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS error_patterns (
+        id TEXT PRIMARY KEY,
+        task_id TEXT,
+        error_message TEXT NOT NULL,
+        error_type TEXT,
+        resolution TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES task_queue(id) ON DELETE SET NULL
+      )
+    `)
+
+    // Task checkpoints table (for resumable long-running tasks)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS task_checkpoints (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        checkpoint_data TEXT NOT NULL,
+        progress_percent INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES task_queue(id) ON DELETE CASCADE
+      )
+    `)
+
+    // Autonomous execution sessions
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS autonomous_sessions (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        config TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'running',
+        stats TEXT,
+        started_at TEXT NOT NULL,
+        ended_at TEXT,
+        error_message TEXT
+      )
+    `)
+
+    // Task execution metrics (for learning and estimation)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS task_execution_metrics (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        task_type TEXT NOT NULL,
+        estimated_duration INTEGER,
+        actual_duration INTEGER,
+        quality_score INTEGER,
+        retry_count INTEGER,
+        success INTEGER,
+        completed_at TEXT NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES task_queue(id) ON DELETE CASCADE
+      )
+    `)
+
     // Create indexes
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_sessions_project ON chat_sessions(project_id);
@@ -265,6 +320,11 @@ class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_techchoices_project ON tech_choices(project_id);
       CREATE INDEX IF NOT EXISTS idx_techchoices_status ON tech_choices(status);
       CREATE INDEX IF NOT EXISTS idx_approvals_task ON approval_gates(task_id);
+      CREATE INDEX IF NOT EXISTS idx_error_patterns_task ON error_patterns(task_id);
+      CREATE INDEX IF NOT EXISTS idx_checkpoints_task ON task_checkpoints(task_id);
+      CREATE INDEX IF NOT EXISTS idx_autonomous_project ON autonomous_sessions(project_id);
+      CREATE INDEX IF NOT EXISTS idx_metrics_task ON task_execution_metrics(task_id);
+      CREATE INDEX IF NOT EXISTS idx_metrics_type ON task_execution_metrics(task_type);
     `)
   }
 

@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events'
 import { databaseService } from './database.service'
 import { claudeService } from './claude.service'
+import { approvalResolverService } from './approval-resolver.service'
 import type {
   QueuedTask,
   TaskType,
@@ -485,19 +486,63 @@ class TaskQueueService extends EventEmitter {
       })
       this.emitEvent('task-completed', task.id, { output })
 
+      // Record metrics for successful completion
+      this.recordTaskMetrics(task, true)
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
 
-      // Check retry count
-      if (task.retryCount < task.maxRetries) {
+      // Classify the error for intelligent retry
+      const errorAnalysis = approvalResolverService.classifyError(errorMessage, task)
+
+      // Check if should retry
+      const effectiveMaxRetries = errorAnalysis.maxRetries ?? task.maxRetries
+      if (errorAnalysis.isRetryable && task.retryCount < effectiveMaxRetries) {
         const db = databaseService.getDb()
-        db.prepare('UPDATE task_queue SET retry_count = retry_count + 1 WHERE id = ?').run(task.id)
+
+        // Enrich context if suggested
+        if (errorAnalysis.suggestedAction === 'retry-with-context') {
+          const enrichedInput = approvalResolverService.enrichContextForRetry(task, errorAnalysis)
+          db.prepare(`
+            UPDATE task_queue
+            SET retry_count = retry_count + 1,
+                input_data = ?,
+                error_message = ?
+            WHERE id = ?
+          `).run(
+            JSON.stringify(enrichedInput),
+            `Retry ${task.retryCount + 1}: ${errorMessage.substring(0, 200)}`,
+            task.id
+          )
+        } else {
+          db.prepare('UPDATE task_queue SET retry_count = retry_count + 1 WHERE id = ?').run(task.id)
+        }
+
         this.updateTaskStatus(task.id, 'pending')
+        this.emitEvent('task-retried', task.id, {
+          retryCount: task.retryCount + 1,
+          errorType: errorAnalysis.errorType,
+          action: errorAnalysis.suggestedAction
+        })
+
+        // Record error for learning
+        approvalResolverService.recordError(task.id, errorMessage, 'failure')
         return
       }
 
+      // Mark as failed and record
       this.updateTaskStatus(task.id, 'failed', { errorMessage })
-      this.emitEvent('task-failed', task.id, { error: errorMessage })
+      this.emitEvent('task-failed', task.id, {
+        error: errorMessage,
+        errorType: errorAnalysis.errorType,
+        wasRetryable: errorAnalysis.isRetryable
+      })
+
+      // Record final failure for learning
+      approvalResolverService.recordError(task.id, errorMessage, 'failure')
+
+      // Record metrics
+      this.recordTaskMetrics(task, false)
     }
   }
 
@@ -630,6 +675,139 @@ class TaskQueueService extends EventEmitter {
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  /**
+   * Record task execution metrics for learning
+   */
+  private recordTaskMetrics(task: QueuedTask, success: boolean): void {
+    const db = databaseService.getDb()
+    const now = new Date().toISOString()
+    const id = this.generateId('metric')
+
+    // Get updated task with actual duration
+    const updatedTask = this.getTask(task.id)
+    if (!updatedTask) return
+
+    db.prepare(`
+      INSERT INTO task_execution_metrics (
+        id, task_id, task_type, estimated_duration, actual_duration,
+        quality_score, retry_count, success, completed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      task.id,
+      task.taskType,
+      task.estimatedDuration || null,
+      updatedTask.actualDuration || null,
+      null, // Quality score is set by approval resolver if reviewed
+      task.retryCount,
+      success ? 1 : 0,
+      now
+    )
+  }
+
+  /**
+   * Save checkpoint for long-running task
+   */
+  saveCheckpoint(taskId: string, checkpointData: unknown, progressPercent: number): void {
+    const db = databaseService.getDb()
+    const now = new Date().toISOString()
+    const id = this.generateId('checkpoint')
+
+    // Delete old checkpoints for this task
+    db.prepare('DELETE FROM task_checkpoints WHERE task_id = ?').run(taskId)
+
+    db.prepare(`
+      INSERT INTO task_checkpoints (id, task_id, checkpoint_data, progress_percent, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(id, taskId, JSON.stringify(checkpointData), progressPercent, now)
+  }
+
+  /**
+   * Get latest checkpoint for a task
+   */
+  getCheckpoint(taskId: string): { data: unknown; progressPercent: number } | null {
+    const db = databaseService.getDb()
+    const row = db.prepare(`
+      SELECT checkpoint_data, progress_percent
+      FROM task_checkpoints
+      WHERE task_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get(taskId) as { checkpoint_data: string; progress_percent: number } | undefined
+
+    if (!row) return null
+
+    return {
+      data: JSON.parse(row.checkpoint_data),
+      progressPercent: row.progress_percent
+    }
+  }
+
+  /**
+   * Get execution metrics summary
+   */
+  getMetricsSummary(projectId: string): {
+    totalTasks: number
+    successRate: number
+    avgDuration: number
+    avgRetries: number
+    byTaskType: Record<string, { count: number; successRate: number }>
+  } {
+    const db = databaseService.getDb()
+
+    const metrics = db.prepare(`
+      SELECT m.*, t.project_id
+      FROM task_execution_metrics m
+      JOIN task_queue t ON t.id = m.task_id
+      WHERE t.project_id = ?
+    `).all(projectId) as Array<{
+      task_type: string
+      estimated_duration: number | null
+      actual_duration: number | null
+      retry_count: number
+      success: number
+    }>
+
+    if (metrics.length === 0) {
+      return {
+        totalTasks: 0,
+        successRate: 0,
+        avgDuration: 0,
+        avgRetries: 0,
+        byTaskType: {}
+      }
+    }
+
+    const successCount = metrics.filter(m => m.success === 1).length
+    const durations = metrics.filter(m => m.actual_duration).map(m => m.actual_duration!)
+    const retries = metrics.map(m => m.retry_count)
+
+    // Group by task type
+    const byTaskType: Record<string, { count: number; successRate: number }> = {}
+    for (const metric of metrics) {
+      if (!byTaskType[metric.task_type]) {
+        byTaskType[metric.task_type] = { count: 0, successRate: 0 }
+      }
+      byTaskType[metric.task_type].count++
+    }
+
+    for (const taskType of Object.keys(byTaskType)) {
+      const typeMetrics = metrics.filter(m => m.task_type === taskType)
+      const typeSuccessCount = typeMetrics.filter(m => m.success === 1).length
+      byTaskType[taskType].successRate = Math.round((typeSuccessCount / typeMetrics.length) * 100)
+    }
+
+    return {
+      totalTasks: metrics.length,
+      successRate: Math.round((successCount / metrics.length) * 100),
+      avgDuration: durations.length > 0
+        ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+        : 0,
+      avgRetries: Math.round((retries.reduce((a, b) => a + b, 0) / retries.length) * 10) / 10,
+      byTaskType
+    }
   }
 
   /**
