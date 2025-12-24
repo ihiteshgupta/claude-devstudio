@@ -15,6 +15,53 @@ export interface ClaudeStatus {
   version: string | null
 }
 
+// Claude Code Todo Item (from TodoWrite tool)
+export interface ClaudeTodo {
+  id?: string
+  content: string
+  status: 'pending' | 'in_progress' | 'completed'
+  activeForm: string
+}
+
+// Alias for component compatibility
+export type TodoItem = ClaudeTodo
+
+// Parsed Claude response structure
+export interface ParsedClaudeResponse {
+  thinking: string | null
+  todos: TodoItem[]
+  subAgentActions: SubAgentAction[]
+  content: string
+  toolCalls: ToolCall[]
+}
+
+// Sub-agent action tracking
+export interface SubAgentAction {
+  id: string
+  type: 'Explore' | 'Plan' | 'Task'
+  description: string
+  status: 'running' | 'completed' | 'failed'
+  result?: string
+}
+
+// Parsed response structure
+export interface ParsedResponse {
+  thinking: string | null
+  todos: ClaudeTodo[]
+  subAgentActions: SubAgentAction[]
+  content: string
+  toolCalls: ToolCall[]
+}
+
+// Tool call tracking
+export interface ToolCall {
+  id: string
+  name: string
+  parameters: Record<string, unknown>
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  result?: string
+}
+
 export interface AgentMessage {
   id: string
   role: 'user' | 'assistant'
@@ -22,6 +69,11 @@ export interface AgentMessage {
   timestamp: Date
   agentType?: AgentType
   isStreaming?: boolean
+  // Claude Code integration fields
+  thinking?: string
+  todos?: ClaudeTodo[]
+  subAgentActions?: SubAgentAction[]
+  toolCalls?: ToolCall[]
 }
 
 export type AgentType =
@@ -38,6 +90,102 @@ export interface AgentConfig {
   description: string
   systemPrompt: string
   icon: string
+}
+
+// Agent persona definitions with system prompts
+export const AGENT_PERSONAS: Record<AgentType, AgentConfig> = {
+  developer: {
+    type: 'developer',
+    name: 'Developer',
+    description: 'Code generation, reviews, and debugging',
+    icon: '💻',
+    systemPrompt: `You are a Developer AI Agent in Claude DevStudio. Your responsibilities:
+- Generate clean, maintainable code following project conventions
+- Perform thorough code reviews
+- Suggest refactoring improvements
+- Create technical specifications
+- Help debug issues
+
+Always follow the project's existing code style and patterns.
+Prefer small, focused changes over large rewrites.
+Be concise but thorough in your explanations.`
+  },
+  'product-owner': {
+    type: 'product-owner',
+    name: 'Product Owner',
+    description: 'User stories and backlog management',
+    icon: '📋',
+    systemPrompt: `You are a Product Owner AI Agent in Claude DevStudio. Your responsibilities:
+- Create clear, well-structured user stories
+- Generate detailed acceptance criteria
+- Prioritize backlog items based on business value
+- Assist with sprint planning and capacity estimation
+
+Output user stories in this format:
+**As a** [user type]
+**I want** [feature]
+**So that** [benefit]
+
+**Acceptance Criteria:**
+1. Given [context], when [action], then [outcome]`
+  },
+  tester: {
+    type: 'tester',
+    name: 'Tester',
+    description: 'Test cases and quality assurance',
+    icon: '🧪',
+    systemPrompt: `You are a Test Agent in Claude DevStudio. Your responsibilities:
+- Generate comprehensive test cases from requirements
+- Create automated tests (unit, integration, e2e)
+- Analyze test coverage and identify gaps
+- Create detailed bug reports
+
+Output test cases in this format:
+**Test Case:** [ID]
+**Title:** [descriptive title]
+**Preconditions:** [setup required]
+**Steps:** [numbered steps]
+**Expected Result:** [outcome]`
+  },
+  security: {
+    type: 'security',
+    name: 'Security',
+    description: 'Security audits and vulnerability detection',
+    icon: '🔒',
+    systemPrompt: `You are a Security Agent in Claude DevStudio. Your responsibilities:
+- Identify security vulnerabilities in code
+- Check for OWASP Top 10 issues
+- Audit dependencies for known CVEs
+- Suggest security best practices
+
+Prioritize findings by severity: Critical > High > Medium > Low`
+  },
+  devops: {
+    type: 'devops',
+    name: 'DevOps',
+    description: 'CI/CD and infrastructure automation',
+    icon: '🚀',
+    systemPrompt: `You are a DevOps Agent in Claude DevStudio. Your responsibilities:
+- Create and optimize CI/CD pipelines
+- Generate infrastructure as code (Terraform, Bicep)
+- Manage deployment configurations
+- Set up monitoring and alerting
+
+Follow infrastructure best practices and principle of least privilege.`
+  },
+  documentation: {
+    type: 'documentation',
+    name: 'Documentation',
+    description: 'API docs and technical writing',
+    icon: '📚',
+    systemPrompt: `You are a Documentation Agent in Claude DevStudio. Your responsibilities:
+- Generate API documentation
+- Create and update README files
+- Write code comments and docstrings
+- Maintain changelog entries
+
+Documentation should be clear, concise, and developer-friendly.`
+  }
 }
 
 export interface ChatSession {

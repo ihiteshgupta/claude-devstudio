@@ -4,6 +4,9 @@ import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import type { AgentMessage, FileNode } from '@shared/types'
+import { ThinkingBlock } from './ThinkingBlock'
+import { TodoList } from './TodoList'
+import { SubAgentPanel } from './SubAgentPanel'
 
 const AGENT_NAMES: Record<string, string> = {
   developer: 'Developer Agent',
@@ -181,17 +184,33 @@ export function ChatPanel(): JSX.Element {
     addMessage(assistantMessage)
 
     let fullResponseContent = ''
+    let accumulatedThinking = ''
+    let accumulatedTodos: Array<{ content: string; status: string; activeForm: string }> = []
 
-    // Set up stream listener
+    // Set up stream listener - handles structured JSON stream events
     streamCleanupRef.current = window.electronAPI.claude.onStream(async (data) => {
       if (data.type === 'chunk' && data.content) {
         fullResponseContent += data.content
         appendMessageContent(assistantMessageId, data.content)
+      } else if (data.type === 'thinking' && data.thinking) {
+        // Accumulate thinking content
+        accumulatedThinking += data.thinking
+        updateMessage(assistantMessageId, { thinking: accumulatedThinking })
+      } else if (data.type === 'todos' && data.todos) {
+        // Update todos list
+        accumulatedTodos = data.todos
+        updateMessage(assistantMessageId, { todos: accumulatedTodos })
+      } else if (data.type === 'tool_call' && data.toolCall) {
+        // Could track tool calls for SubAgentPanel
+        console.log('[ChatPanel] Tool call:', data.toolCall)
       } else if (data.type === 'complete') {
         const finalContent = data.content || fullResponseContent
         updateMessage(assistantMessageId, {
           isStreaming: false,
-          content: finalContent
+          content: finalContent,
+          // Include structured data from completion event
+          thinking: data.thinking || accumulatedThinking || undefined,
+          todos: data.todos || (accumulatedTodos.length > 0 ? accumulatedTodos : undefined)
         })
 
         // Save assistant message to database
@@ -589,6 +608,23 @@ function MessageBubble({ message }: { message: AgentMessage }): JSX.Element {
         ) : isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
+          <>
+            {/* Thinking block - collapsible */}
+            {message.thinking && (
+              <ThinkingBlock thinking={message.thinking} isStreaming={message.isStreaming} />
+            )}
+
+            {/* Todo list - shows agent's task progress */}
+            {message.todos && message.todos.length > 0 && (
+              <TodoList todos={message.todos} isStreaming={message.isStreaming} />
+            )}
+
+            {/* Sub-agent actions - shows spawned agents */}
+            {message.subAgentActions && message.subAgentActions.length > 0 && (
+              <SubAgentPanel actions={message.subAgentActions} isStreaming={message.isStreaming} />
+            )}
+
+            {/* Main response content */}
           <div className="prose prose-sm max-w-none text-foreground">
             <ReactMarkdown
               components={{
@@ -657,6 +693,7 @@ function MessageBubble({ message }: { message: AgentMessage }): JSX.Element {
               {message.content}
             </ReactMarkdown>
           </div>
+          </>
         )}
         {message.isStreaming && message.content && (
           <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />

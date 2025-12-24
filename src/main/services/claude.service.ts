@@ -1,71 +1,6 @@
 import { spawn, ChildProcess, execSync } from 'child_process'
 import { EventEmitter } from 'events'
-import type { AgentType, ClaudeStatus } from '@shared/types'
-
-// Agent system prompts
-const AGENT_PROMPTS: Record<AgentType, string> = {
-  developer: `You are a Developer AI Agent in Claude DevStudio. Your responsibilities:
-- Generate clean, maintainable code following project conventions
-- Perform thorough code reviews
-- Suggest refactoring improvements
-- Create technical specifications
-- Help debug issues
-
-Always follow the project's existing code style and patterns.
-Prefer small, focused changes over large rewrites.
-Be concise but thorough in your explanations.`,
-
-  'product-owner': `You are a Product Owner AI Agent in Claude DevStudio. Your responsibilities:
-- Create clear, well-structured user stories
-- Generate detailed acceptance criteria
-- Prioritize backlog items based on business value
-- Assist with sprint planning and capacity estimation
-
-Output user stories in this format:
-**As a** [user type]
-**I want** [feature]
-**So that** [benefit]
-
-**Acceptance Criteria:**
-1. Given [context], when [action], then [outcome]`,
-
-  tester: `You are a Test Agent in Claude DevStudio. Your responsibilities:
-- Generate comprehensive test cases from requirements
-- Create automated tests (unit, integration, e2e)
-- Analyze test coverage and identify gaps
-- Create detailed bug reports
-
-Output test cases in this format:
-**Test Case:** [ID]
-**Title:** [descriptive title]
-**Preconditions:** [setup required]
-**Steps:** [numbered steps]
-**Expected Result:** [outcome]`,
-
-  security: `You are a Security Agent in Claude DevStudio. Your responsibilities:
-- Identify security vulnerabilities in code
-- Check for OWASP Top 10 issues
-- Audit dependencies for known CVEs
-- Suggest security best practices
-
-Prioritize findings by severity: Critical > High > Medium > Low`,
-
-  devops: `You are a DevOps Agent in Claude DevStudio. Your responsibilities:
-- Create and optimize CI/CD pipelines
-- Generate infrastructure as code (Terraform, Bicep)
-- Manage deployment configurations
-- Set up monitoring and alerting
-
-Follow infrastructure best practices and principle of least privilege.`,
-
-  documentation: `You are a Documentation Agent in Claude DevStudio. Your responsibilities:
-- Generate API documentation
-- Create and update README files
-- Write code comments and docstrings
-- Maintain changelog entries
-
-Documentation should be clear, concise, and developer-friendly.`
-}
+import { AgentType, ClaudeStatus, AGENT_PERSONAS } from '@shared/types'
 
 interface SendMessageOptions {
   sessionId: string
@@ -182,7 +117,7 @@ class ClaudeCLIService extends EventEmitter {
     // Cancel any existing process
     this.cancelCurrent()
 
-    const systemPrompt = AGENT_PROMPTS[agentType]
+    const systemPrompt = AGENT_PERSONAS[agentType].systemPrompt
 
     // Build CLI arguments for print mode (non-interactive single response)
     // Note: We set cwd to projectPath so Claude has context, but don't use --add-dir
@@ -202,7 +137,8 @@ class ClaudeCLIService extends EventEmitter {
     const escapedMessage = message.replace(/'/g, "'\\''")
 
     // Build shell command with properly escaped arguments
-    const shellCommand = `'${this.claudePath}' --print --system-prompt '${escapedSystemPrompt}' '${escapedMessage}'`
+    // Use --output-format stream-json for structured JSON output (requires --verbose with --print)
+    const shellCommand = `'${this.claudePath}' --print --verbose --output-format stream-json --system-prompt '${escapedSystemPrompt}' '${escapedMessage}'`
 
     console.log('[Claude Service] Shell command (first 200 chars):', shellCommand.substring(0, 200))
 
@@ -226,18 +162,86 @@ class ClaudeCLIService extends EventEmitter {
     this.currentProcess.stdin?.end()
 
     let fullOutput = ''
+    let jsonBuffer = '' // Buffer for incomplete JSON lines
+    let extractedContent = '' // Accumulated text content
+    let thinking = ''
+    const todos: Array<{ content: string; status: string; activeForm: string }> = []
+    const toolCalls: Array<{ name: string; input: unknown; result?: string }> = []
 
-    // Handle stdout
+    // Handle stdout - parse stream-json format (newline-delimited JSON)
     this.currentProcess.stdout?.on('data', (data: Buffer) => {
       const chunk = data.toString()
       fullOutput += chunk
-      console.log('[Claude Service] Received chunk:', chunk.substring(0, 100))
+      jsonBuffer += chunk
 
-      // Emit streaming chunks
-      this.emit('stream', {
-        sessionId,
-        content: chunk
-      })
+      // Process complete JSON lines
+      const lines = jsonBuffer.split('\n')
+      jsonBuffer = lines.pop() || '' // Keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (!line.trim()) continue
+
+        try {
+          const event = JSON.parse(line)
+          console.log('[Claude Service] JSON event type:', event.type)
+
+          // Handle different event types from stream-json
+          if (event.type === 'content' || event.type === 'text') {
+            const text = event.content || event.text || ''
+            extractedContent += text
+            this.emit('stream', {
+              sessionId,
+              content: text,
+              type: 'chunk'
+            })
+          } else if (event.type === 'thinking') {
+            thinking += event.content || ''
+            this.emit('stream', {
+              sessionId,
+              thinking: event.content,
+              type: 'thinking'
+            })
+          } else if (event.type === 'tool_use' || event.type === 'tool_call') {
+            toolCalls.push({
+              name: event.name || event.tool_name,
+              input: event.input || event.tool_input
+            })
+            this.emit('stream', {
+              sessionId,
+              toolCall: { name: event.name, input: event.input },
+              type: 'tool_call'
+            })
+          } else if (event.type === 'tool_result') {
+            // Match result to last tool call
+            if (toolCalls.length > 0) {
+              toolCalls[toolCalls.length - 1].result = event.content
+            }
+          } else if (event.type === 'todo' || event.type === 'todos') {
+            const todoItems = event.todos || [event]
+            todos.push(...todoItems)
+            this.emit('stream', {
+              sessionId,
+              todos: todoItems,
+              type: 'todos'
+            })
+          } else if (event.type === 'result' || event.type === 'message') {
+            // Final result event
+            const text = event.result || event.content || ''
+            if (text && !extractedContent.includes(text)) {
+              extractedContent += text
+            }
+          }
+        } catch {
+          // Not valid JSON, might be plain text fallback
+          console.log('[Claude Service] Non-JSON line:', line.substring(0, 50))
+          extractedContent += line + '\n'
+          this.emit('stream', {
+            sessionId,
+            content: line + '\n',
+            type: 'chunk'
+          })
+        }
+      }
     })
 
     // Handle stderr (Claude CLI outputs some info to stderr)
@@ -257,10 +261,28 @@ class ClaudeCLIService extends EventEmitter {
     this.currentProcess.on('close', (code) => {
       console.log('[Claude Service] Process closed with code:', code)
       console.log('[Claude Service] Full output length:', fullOutput.length)
-      if (code === 0 || fullOutput.length > 0) {
+      console.log('[Claude Service] Extracted content length:', extractedContent.length)
+
+      // Process any remaining buffer
+      if (jsonBuffer.trim()) {
+        try {
+          const event = JSON.parse(jsonBuffer)
+          if (event.result || event.content) {
+            extractedContent += event.result || event.content
+          }
+        } catch {
+          extractedContent += jsonBuffer
+        }
+      }
+
+      if (code === 0 || extractedContent.length > 0 || fullOutput.length > 0) {
         this.emit('complete', {
           sessionId,
-          content: fullOutput
+          content: extractedContent || fullOutput,
+          // Include structured data
+          thinking: thinking || undefined,
+          todos: todos.length > 0 ? todos : undefined,
+          toolCalls: toolCalls.length > 0 ? toolCalls : undefined
         })
       } else {
         this.emit('error', {
