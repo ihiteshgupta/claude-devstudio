@@ -536,6 +536,159 @@ const api = {
         ipcRenderer.removeListener(IPC_CHANNELS.AUTONOMOUS_EVENT, handler)
       }
     }
+  },
+
+  // Test Execution
+  testing: {
+    run: (params: {
+      projectPath: string
+      projectId: string
+      options?: {
+        taskId?: string
+        testPattern?: string
+        framework?: 'jest' | 'vitest' | 'playwright' | 'auto'
+        timeout?: number
+        coverage?: boolean
+      }
+    }): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TEST_RUN, params)
+    },
+    cancel: (): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TEST_CANCEL)
+    },
+    isRunning: (): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TEST_STATUS)
+    },
+    getBaselines: (projectId: string): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TEST_BASELINES, projectId)
+    },
+    getExecutions: (projectId: string, limit?: number): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TEST_EXECUTIONS, { projectId, limit })
+    },
+    getFlakyTests: (projectId: string, threshold?: number): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TEST_FLAKY, { projectId, threshold })
+    },
+    analyzeFailure: (projectId: string, testKey: string): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TEST_ANALYZE, { projectId, testKey })
+    },
+    onEvent: (callback: (event: { type: string; data: unknown }) => void): (() => void) => {
+      const handler = (_event: IpcRendererEvent, data: Parameters<typeof callback>[0]): void => {
+        callback(data)
+      }
+      ipcRenderer.on(IPC_CHANNELS.TEST_EVENT, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.TEST_EVENT, handler)
+      }
+    }
+  },
+
+  // Git Automation
+  gitAuto: {
+    createBranch: (projectPath: string, branchName: string, baseBranch?: string): Promise<{ success: boolean; message: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_CREATE_BRANCH, { projectPath, branchName, baseBranch })
+    },
+    createFeature: (projectPath: string, featureName: string, baseBranch?: string): Promise<{ success: boolean; branchName: string; message: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_CREATE_FEATURE, { projectPath, featureName, baseBranch })
+    },
+    createRelease: (projectPath: string, version: string, baseBranch?: string): Promise<{ success: boolean; branchName: string; message: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_CREATE_RELEASE, { projectPath, version, baseBranch })
+    },
+    deleteBranch: (projectPath: string, branchName: string, deleteRemote?: boolean): Promise<{ success: boolean; message: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_DELETE_BRANCH, { projectPath, branchName, deleteRemote })
+    },
+    merge: (projectPath: string, sourceBranch: string, targetBranch?: string, options?: { noFastForward?: boolean; squash?: boolean; message?: string }): Promise<{ success: boolean; mergedCommit?: string; conflicts?: string[]; message: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_MERGE, { projectPath, sourceBranch, targetBranch, options })
+    },
+    createTag: (projectPath: string, tagName: string, options?: { message?: string; annotated?: boolean; commit?: string }): Promise<{ success: boolean; message: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_CREATE_TAG, { projectPath, tagName, options })
+    },
+    listTags: (projectPath: string): Promise<Array<{ name: string; commit: string; message?: string; createdAt?: string }>> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_LIST_TAGS, projectPath)
+    },
+    pushTags: (projectPath: string, tagName?: string): Promise<{ success: boolean; message: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_PUSH_TAGS, { projectPath, tagName })
+    },
+    commitAgent: (projectPath: string, message: string, options?: { taskId?: string; agentType?: string; files?: string[] }): Promise<{ success: boolean; commitHash?: string; message: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT_AGENT, { projectPath, message, options })
+    },
+    preparePR: (projectPath: string, sourceBranch: string, targetBranch?: string): Promise<{ title: string; body: string; sourceBranch: string; targetBranch: string; files: string[]; commits: number } | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_PREPARE_PR, { projectPath, sourceBranch, targetBranch })
+    },
+    rebase: (projectPath: string, ontoBranch: string): Promise<{ success: boolean; message: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_REBASE, { projectPath, ontoBranch })
+    },
+    fetch: (projectPath: string, options?: { remote?: string; prune?: boolean; tags?: boolean }): Promise<{ success: boolean; message: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_FETCH, { projectPath, options })
+    }
+  },
+
+  // Build & Deployment
+  build: {
+    run: (params: {
+      projectPath: string
+      projectId: string
+      options?: { taskId?: string; config?: { command?: string; args?: string[]; env?: Record<string, string>; outputDir?: string } }
+    }): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUILD_RUN, params)
+    },
+    cancel: (): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUILD_CANCEL)
+    },
+    isRunning: (): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUILD_STATUS)
+    },
+    list: (projectId: string, limit?: number): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUILD_LIST, { projectId, limit })
+    },
+    onEvent: (callback: (event: { type: string; data: unknown }) => void): (() => void) => {
+      const handler = (_event: IpcRendererEvent, data: Parameters<typeof callback>[0]): void => {
+        callback(data)
+      }
+      ipcRenderer.on(IPC_CHANNELS.BUILD_EVENT, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.BUILD_EVENT, handler)
+      }
+    }
+  },
+
+  deploy: {
+    run: (params: {
+      projectPath: string
+      projectId: string
+      config: {
+        environment: 'development' | 'staging' | 'production'
+        buildId?: string
+        artifactPath?: string
+        preDeployHooks?: string[]
+        postDeployHooks?: string[]
+        healthCheckUrl?: string
+        healthCheckTimeout?: number
+        rollbackOnFailure?: boolean
+      }
+    }): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.DEPLOY_RUN, params)
+    },
+    rollback: (projectPath: string, projectId: string, environment: 'development' | 'staging' | 'production'): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.DEPLOY_ROLLBACK, { projectPath, projectId, environment })
+    },
+    isRunning: (): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.DEPLOY_STATUS)
+    },
+    list: (projectId: string, environment?: 'development' | 'staging' | 'production', limit?: number): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.DEPLOY_LIST, { projectId, environment, limit })
+    },
+    getCurrent: (projectId: string, environment: 'development' | 'staging' | 'production'): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.DEPLOY_CURRENT, { projectId, environment })
+    },
+    onEvent: (callback: (event: { type: string; data: unknown }) => void): (() => void) => {
+      const handler = (_event: IpcRendererEvent, data: Parameters<typeof callback>[0]): void => {
+        callback(data)
+      }
+      ipcRenderer.on(IPC_CHANNELS.DEPLOY_EVENT, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.DEPLOY_EVENT, handler)
+      }
+    }
   }
 }
 

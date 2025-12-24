@@ -301,6 +301,87 @@ class DatabaseService {
       )
     `)
 
+    // Test executions table (tracking actual test runs)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS test_executions (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        task_id TEXT,
+        test_case_id TEXT,
+        test_name TEXT NOT NULL,
+        test_path TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        duration INTEGER DEFAULT 0,
+        executed_at TEXT NOT NULL,
+        error_message TEXT,
+        stack_trace TEXT,
+        git_commit TEXT,
+        FOREIGN KEY (task_id) REFERENCES task_queue(id) ON DELETE SET NULL,
+        FOREIGN KEY (test_case_id) REFERENCES test_cases(id) ON DELETE SET NULL
+      )
+    `)
+
+    // Test baselines table (for tracking test stability and detecting regressions)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS test_baselines (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id TEXT NOT NULL,
+        test_key TEXT NOT NULL,
+        test_name TEXT NOT NULL,
+        test_path TEXT,
+        pass_rate REAL DEFAULT 0,
+        avg_duration INTEGER DEFAULT 0,
+        flaky_score REAL DEFAULT 0,
+        execution_count INTEGER DEFAULT 0,
+        last_status TEXT,
+        last_executed_at TEXT,
+        last_passed_commit TEXT,
+        last_passed_at TEXT,
+        UNIQUE(project_id, test_key)
+      )
+    `)
+
+    // Builds table (for tracking build results)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS builds (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        task_id TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        start_time TEXT NOT NULL,
+        end_time TEXT,
+        duration INTEGER,
+        output_dir TEXT,
+        artifacts TEXT,
+        logs TEXT,
+        git_commit TEXT,
+        git_branch TEXT,
+        error_message TEXT,
+        FOREIGN KEY (task_id) REFERENCES task_queue(id) ON DELETE SET NULL
+      )
+    `)
+
+    // Deployments table (for tracking deployment history)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS deployments (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        build_id TEXT,
+        environment TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        start_time TEXT NOT NULL,
+        end_time TEXT,
+        duration INTEGER,
+        git_commit TEXT,
+        git_tag TEXT,
+        deployed_by TEXT NOT NULL,
+        health_check_passed INTEGER,
+        error_message TEXT,
+        rollback_from_id TEXT,
+        FOREIGN KEY (build_id) REFERENCES builds(id) ON DELETE SET NULL
+      )
+    `)
+
     // Create indexes
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_sessions_project ON chat_sessions(project_id);
@@ -325,6 +406,16 @@ class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_autonomous_project ON autonomous_sessions(project_id);
       CREATE INDEX IF NOT EXISTS idx_metrics_task ON task_execution_metrics(task_id);
       CREATE INDEX IF NOT EXISTS idx_metrics_type ON task_execution_metrics(task_type);
+      CREATE INDEX IF NOT EXISTS idx_test_exec_project ON test_executions(project_id);
+      CREATE INDEX IF NOT EXISTS idx_test_exec_status ON test_executions(status);
+      CREATE INDEX IF NOT EXISTS idx_test_exec_task ON test_executions(task_id);
+      CREATE INDEX IF NOT EXISTS idx_test_baselines_project ON test_baselines(project_id);
+      CREATE INDEX IF NOT EXISTS idx_test_baselines_key ON test_baselines(test_key);
+      CREATE INDEX IF NOT EXISTS idx_builds_project ON builds(project_id);
+      CREATE INDEX IF NOT EXISTS idx_builds_status ON builds(status);
+      CREATE INDEX IF NOT EXISTS idx_deployments_project ON deployments(project_id);
+      CREATE INDEX IF NOT EXISTS idx_deployments_env ON deployments(environment);
+      CREATE INDEX IF NOT EXISTS idx_deployments_status ON deployments(status);
     `)
   }
 

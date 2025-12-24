@@ -12,6 +12,9 @@ import { taskQueueService } from './services/task-queue.service'
 import { techAdvisorService } from './services/tech-advisor.service'
 import { taskDecomposerService } from './services/task-decomposer.service'
 import { autonomousExecutorService } from './services/autonomous-executor.service'
+import { testExecutionService } from './services/test-execution.service'
+import { gitAutomationService } from './services/git-automation.service'
+import { deploymentService } from './services/deployment.service'
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -535,6 +538,149 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.AUTONOMOUS_METRICS, async (_, projectId) => {
     return taskQueueService.getMetricsSummary(projectId)
+  })
+
+  // ============ Test Execution Handlers ============
+
+  ipcMain.handle(IPC_CHANNELS.TEST_RUN, async (_, { projectPath, projectId, options }) => {
+    // Forward events to renderer
+    const events = ['test-run-started', 'test-run-completed', 'test-run-error', 'test-output', 'test-run-cancelled']
+    events.forEach(event => {
+      testExecutionService.on(event, (data) => {
+        mainWindow?.webContents.send(IPC_CHANNELS.TEST_EVENT, { type: event, data })
+      })
+    })
+    return testExecutionService.runTests(projectPath, projectId, options)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TEST_CANCEL, async () => {
+    return testExecutionService.cancel()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TEST_STATUS, async () => {
+    return testExecutionService.isTestRunning()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TEST_BASELINES, async (_, projectId) => {
+    return testExecutionService.getBaselines(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TEST_EXECUTIONS, async (_, { projectId, limit }) => {
+    return testExecutionService.getRecentExecutions(projectId, limit || 100)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TEST_FLAKY, async (_, { projectId, threshold }) => {
+    return testExecutionService.getFlakyTests(projectId, threshold || 0.3)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TEST_ANALYZE, async (_, { projectId, testKey }) => {
+    return testExecutionService.analyzeFailure(projectId, testKey)
+  })
+
+  // ============ Git Automation Handlers ============
+
+  ipcMain.handle(IPC_CHANNELS.GIT_CREATE_BRANCH, async (_, { projectPath, branchName, baseBranch }) => {
+    return gitAutomationService.createBranch(projectPath, branchName, baseBranch)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_CREATE_FEATURE, async (_, { projectPath, featureName, baseBranch }) => {
+    return gitAutomationService.createFeatureBranch(projectPath, featureName, baseBranch)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_CREATE_RELEASE, async (_, { projectPath, version, baseBranch }) => {
+    return gitAutomationService.createReleaseBranch(projectPath, version, baseBranch)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_DELETE_BRANCH, async (_, { projectPath, branchName, deleteRemote }) => {
+    return gitAutomationService.deleteBranch(projectPath, branchName, deleteRemote)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_MERGE, async (_, { projectPath, sourceBranch, targetBranch, options }) => {
+    if (targetBranch) {
+      return gitAutomationService.mergeBranchInto(projectPath, sourceBranch, targetBranch, options)
+    }
+    return gitAutomationService.mergeBranch(projectPath, sourceBranch, options)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_CREATE_TAG, async (_, { projectPath, tagName, options }) => {
+    return gitAutomationService.createTag(projectPath, tagName, options)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_LIST_TAGS, async (_, projectPath) => {
+    return gitAutomationService.listTags(projectPath)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_PUSH_TAGS, async (_, { projectPath, tagName }) => {
+    return gitAutomationService.pushTags(projectPath, tagName)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_COMMIT_AGENT, async (_, { projectPath, message, options }) => {
+    return gitAutomationService.commitAgentChanges(projectPath, message, options)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_PREPARE_PR, async (_, { projectPath, sourceBranch, targetBranch }) => {
+    return gitAutomationService.preparePullRequest(projectPath, sourceBranch, targetBranch)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_REBASE, async (_, { projectPath, ontoBranch }) => {
+    return gitAutomationService.rebase(projectPath, ontoBranch)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_FETCH, async (_, { projectPath, options }) => {
+    return gitAutomationService.fetch(projectPath, options)
+  })
+
+  // ============ Build & Deployment Handlers ============
+
+  ipcMain.handle(IPC_CHANNELS.BUILD_RUN, async (_, { projectPath, projectId, options }) => {
+    // Forward events to renderer
+    const events = ['build-started', 'build-completed', 'build-failed', 'build-output', 'build-cancelled']
+    events.forEach(event => {
+      deploymentService.on(event, (data) => {
+        mainWindow?.webContents.send(IPC_CHANNELS.BUILD_EVENT, { type: event, data })
+      })
+    })
+    return deploymentService.runBuild(projectPath, projectId, options)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUILD_CANCEL, async () => {
+    return deploymentService.cancelBuild()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUILD_STATUS, async () => {
+    return deploymentService.isBuildRunning()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUILD_LIST, async (_, { projectId, limit }) => {
+    return deploymentService.getRecentBuilds(projectId, limit || 20)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DEPLOY_RUN, async (_, { projectPath, projectId, config }) => {
+    // Forward events to renderer
+    const events = ['deployment-started', 'deployment-completed', 'deployment-failed',
+                    'deployment-output', 'rollback-started', 'rollback-completed', 'rollback-failed']
+    events.forEach(event => {
+      deploymentService.on(event, (data) => {
+        mainWindow?.webContents.send(IPC_CHANNELS.DEPLOY_EVENT, { type: event, data })
+      })
+    })
+    return deploymentService.deploy(projectPath, projectId, config)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DEPLOY_ROLLBACK, async (_, { projectPath, projectId, environment }) => {
+    return deploymentService.rollback(projectPath, projectId, environment)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DEPLOY_STATUS, async () => {
+    return deploymentService.isDeploymentRunning()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DEPLOY_LIST, async (_, { projectId, environment, limit }) => {
+    return deploymentService.getRecentDeployments(projectId, environment, limit || 20)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.DEPLOY_CURRENT, async (_, { projectId, environment }) => {
+    return deploymentService.getCurrentDeployment(projectId, environment)
   })
 }
 

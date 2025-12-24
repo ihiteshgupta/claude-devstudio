@@ -657,6 +657,43 @@ export const IPC_CHANNELS = {
   AUTONOMOUS_STATS: 'autonomous:stats',
   AUTONOMOUS_EVENT: 'autonomous:event',
   AUTONOMOUS_METRICS: 'autonomous:metrics',
+
+  // Test Execution
+  TEST_RUN: 'test:run',
+  TEST_CANCEL: 'test:cancel',
+  TEST_STATUS: 'test:status',
+  TEST_BASELINES: 'test:baselines',
+  TEST_EXECUTIONS: 'test:executions',
+  TEST_FLAKY: 'test:flaky',
+  TEST_ANALYZE: 'test:analyze',
+  TEST_EVENT: 'test:event',
+
+  // Git Automation
+  GIT_CREATE_BRANCH: 'git:createBranch',
+  GIT_CREATE_FEATURE: 'git:createFeature',
+  GIT_CREATE_RELEASE: 'git:createRelease',
+  GIT_DELETE_BRANCH: 'git:deleteBranch',
+  GIT_MERGE: 'git:merge',
+  GIT_CREATE_TAG: 'git:createTag',
+  GIT_LIST_TAGS: 'git:listTags',
+  GIT_PUSH_TAGS: 'git:pushTags',
+  GIT_COMMIT_AGENT: 'git:commitAgent',
+  GIT_PREPARE_PR: 'git:preparePr',
+  GIT_REBASE: 'git:rebase',
+  GIT_FETCH: 'git:fetch',
+
+  // Build & Deployment
+  BUILD_RUN: 'build:run',
+  BUILD_CANCEL: 'build:cancel',
+  BUILD_STATUS: 'build:status',
+  BUILD_LIST: 'build:list',
+  BUILD_EVENT: 'build:event',
+  DEPLOY_RUN: 'deploy:run',
+  DEPLOY_ROLLBACK: 'deploy:rollback',
+  DEPLOY_STATUS: 'deploy:status',
+  DEPLOY_LIST: 'deploy:list',
+  DEPLOY_CURRENT: 'deploy:current',
+  DEPLOY_EVENT: 'deploy:event',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
