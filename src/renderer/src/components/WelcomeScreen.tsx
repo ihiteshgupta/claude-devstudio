@@ -37,8 +37,12 @@ export function WelcomeScreen(): JSX.Element {
       <div className="max-w-2xl w-full">
         {/* Logo and title */}
         <div className="text-center mb-12">
-          <div className="text-6xl mb-4">🚀</div>
-          <h1 className="text-3xl font-bold mb-2">Sakha DevStudio</h1>
+          <div className="text-6xl mb-4">
+            <svg className="w-16 h-16 mx-auto text-[#D97757]" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.5 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-11 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 14a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-11 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold mb-2">Claude DevStudio</h1>
           <p className="text-muted-foreground">
             AI-powered Agile SDLC with Claude Code
           </p>

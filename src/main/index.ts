@@ -367,7 +367,7 @@ function setupIpcHandlers(): void {
 
 // App lifecycle
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.sakha.devstudio')
+  electronApp.setAppUserModelId('com.claude.devstudio')
 
   // Watch for shortcuts in dev
   app.on('browser-window-created', (_, window) => {

@@ -8,12 +8,12 @@ class DatabaseService {
   private db: Database.Database
 
   constructor() {
-    const dataPath = join(app.getPath('userData'), 'sakha-data')
+    const dataPath = join(app.getPath('userData'), 'claude-data')
     if (!existsSync(dataPath)) {
       mkdirSync(dataPath, { recursive: true })
     }
 
-    const dbPath = join(dataPath, 'sakha.db')
+    const dbPath = join(dataPath, 'claude.db')
     this.db = new Database(dbPath)
     this.initTables()
   }

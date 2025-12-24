@@ -7,6 +7,7 @@ import { WorkflowPanel } from './components/WorkflowPanel'
 import { StoriesPanel } from './components/StoriesPanel'
 import { SprintPanel } from './components/SprintPanel'
 import { GitPanel } from './components/GitPanel'
+import { DashboardPanel } from './components/DashboardPanel'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { StatusBar } from './components/StatusBar'
 
@@ -56,6 +57,8 @@ function App(): JSX.Element {
             <ClaudeNotAuthenticated />
           ) : !currentProject ? (
             <WelcomeScreen />
+          ) : viewMode === 'dashboard' ? (
+            <DashboardPanel projectPath={currentProject.path} />
           ) : viewMode === 'chat' ? (
             <ChatPanel />
           ) : viewMode === 'workflows' ? (
@@ -84,7 +87,7 @@ function ClaudeNotInstalled(): JSX.Element {
         <div className="text-6xl mb-6">🔧</div>
         <h2 className="text-2xl font-semibold mb-4">Claude Code Not Found</h2>
         <p className="text-muted-foreground mb-6">
-          Sakha DevStudio requires Claude Code CLI to be installed. Please install it to continue.
+          Claude DevStudio requires Claude Code CLI to be installed. Please install it to continue.
         </p>
         <a
           href="https://claude.ai/code"

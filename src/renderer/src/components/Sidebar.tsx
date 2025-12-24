@@ -12,8 +12,9 @@ const AGENTS: { type: AgentType; name: string; icon: string; description: string
 ]
 
 const VIEW_TABS: { mode: ViewMode; name: string; icon: string }[] = [
+  { mode: 'dashboard', name: 'Home', icon: '📊' },
   { mode: 'chat', name: 'Chat', icon: '💬' },
-  { mode: 'workflows', name: 'Workflows', icon: '🔄' },
+  { mode: 'workflows', name: 'Flows', icon: '🔄' },
   { mode: 'stories', name: 'Stories', icon: '📝' },
   { mode: 'sprints', name: 'Sprints', icon: '📅' },
   { mode: 'git', name: 'Git', icon: '🔀' }
@@ -149,6 +150,17 @@ export function Sidebar(): JSX.Element {
           ))}
         </div>
       </div>
+
+      {/* Dashboard info - Only show in dashboard mode */}
+      {viewMode === 'dashboard' && (
+        <div className="flex-1 p-4 overflow-y-auto">
+          <h2 className="text-sm font-semibold text-foreground mb-3">Project Overview</h2>
+          <div className="text-xs text-muted-foreground space-y-2">
+            <p>View project metrics, sprint progress, and story statistics at a glance.</p>
+            <p className="text-purple-400">Quick access to all your project data.</p>
+          </div>
+        </div>
+      )}
 
       {/* Agents Section - Only show in chat mode */}
       {viewMode === 'chat' && (

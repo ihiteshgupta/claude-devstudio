@@ -1,5 +1,5 @@
-appId: com.sakha.devstudio
-productName: Sakha DevStudio
+appId: com.claude.devstudio
+productName: Claude DevStudio
 directories:
   buildResources: resources
   output: dist-app
@@ -47,5 +47,5 @@ linux:
     - target: deb
       arch:
         - x64
-  maintainer: Sakha Team
+  maintainer: Claude DevStudio Team
   category: Development

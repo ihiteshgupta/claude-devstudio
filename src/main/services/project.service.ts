@@ -9,7 +9,7 @@ class ProjectService {
   private projects: Map<string, Project> = new Map()
 
   constructor() {
-    this.dataPath = join(app.getPath('userData'), 'sakha-data')
+    this.dataPath = join(app.getPath('userData'), 'claude-data')
     this.projectsFile = join(this.dataPath, 'projects.json')
     this.ensureDataDir()
     this.loadProjects()

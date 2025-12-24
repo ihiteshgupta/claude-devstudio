@@ -1,9 +1,9 @@
 {
-  "name": "sakha-devstudio",
+  "name": "claude-devstudio",
   "version": "0.1.0",
   "description": "AI-Powered Agile SDLC Desktop Application with Claude Code",
   "main": "dist/main/index.js",
-  "author": "Sakha Team",
+  "author": "Claude DevStudio Team",
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
