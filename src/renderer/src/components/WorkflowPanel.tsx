@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '../stores/appStore'
 import type { Workflow, WorkflowStep, WorkflowTemplate } from '@shared/types'
+import { useToast } from './Toast'
 
 interface WorkflowPanelProps {
   projectPath: string
@@ -35,25 +36,31 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function WorkflowPanel({ projectPath }: WorkflowPanelProps): JSX.Element {
   const { currentProject } = useAppStore()
+  const toast = useToast()
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null)
   const [newWorkflowInput, setNewWorkflowInput] = useState('')
   const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplate>('story-to-tests')
   const [isCreating, setIsCreating] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   const templates = window.electronAPI.workflows.getTemplates()
 
   // Load workflows
   const loadWorkflows = useCallback(async () => {
     if (!currentProject) return
+    setIsLoading(true)
     try {
       const projectWorkflows = await window.electronAPI.workflows.list(currentProject.id)
       setWorkflows(projectWorkflows)
     } catch (error) {
       console.error('Failed to load workflows:', error)
+      toast.error('Load Failed', 'Could not load workflows')
+    } finally {
+      setIsLoading(false)
     }
-  }, [currentProject])
+  }, [currentProject, toast])
 
   useEffect(() => {
     loadWorkflows()

@@ -10,10 +10,16 @@ import { GitPanel } from './components/GitPanel'
 import { DashboardPanel } from './components/DashboardPanel'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { StatusBar } from './components/StatusBar'
+import { ToastProvider, useToast } from './components/Toast'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
-function App(): JSX.Element {
+function AppContent(): JSX.Element {
   const { claudeStatus, setClaudeStatus, currentProject, setProjects, isSidebarOpen, viewMode } =
     useAppStore()
+  const toast = useToast()
+
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts()
 
   // Check Claude CLI status on mount
   useEffect(() => {
@@ -23,10 +29,11 @@ function App(): JSX.Element {
         setClaudeStatus(status)
       } catch (error) {
         console.error('Failed to check Claude status:', error)
+        toast.error('Claude Status Check Failed', 'Could not connect to Claude CLI')
       }
     }
     checkStatus()
-  }, [setClaudeStatus])
+  }, [setClaudeStatus, toast])
 
   // Load projects on mount
   useEffect(() => {
@@ -36,10 +43,11 @@ function App(): JSX.Element {
         setProjects(projects)
       } catch (error) {
         console.error('Failed to load projects:', error)
+        toast.error('Failed to Load Projects', 'Could not load your projects')
       }
     }
     loadProjects()
-  }, [setProjects])
+  }, [setProjects, toast])
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
@@ -117,6 +125,15 @@ function ClaudeNotAuthenticated(): JSX.Element {
         </p>
       </div>
     </div>
+  )
+}
+
+// Main App wrapper with providers
+function App(): JSX.Element {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   )
 }
 

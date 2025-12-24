@@ -7,6 +7,7 @@ import type { AgentMessage, FileNode } from '@shared/types'
 import { ThinkingBlock } from './ThinkingBlock'
 import { TodoList } from './TodoList'
 import { SubAgentPanel } from './SubAgentPanel'
+import { useToast } from './Toast'
 
 const AGENT_NAMES: Record<string, string> = {
   developer: 'Developer Agent',
@@ -36,6 +37,7 @@ export function ChatPanel(): JSX.Element {
     showSessionHistory,
     setShowSessionHistory
   } = useAppStore()
+  const toast = useToast()
 
   const [input, setInput] = useState('')
   const [showFilePanel, setShowFilePanel] = useState(false)
@@ -139,6 +141,7 @@ export function ChatPanel(): JSX.Element {
         addSession(newSession)
       } catch (error) {
         console.error('Failed to create session:', error)
+        toast.error('Session Error', 'Failed to create chat session')
       }
     }
 
@@ -277,8 +280,10 @@ export function ChatPanel(): JSX.Element {
     try {
       await window.electronAPI.claude.cancel()
       setIsLoading(false)
+      toast.info('Cancelled', 'Request cancelled')
     } catch (error) {
       console.error('Failed to cancel:', error)
+      toast.error('Cancel Failed', 'Could not cancel the request')
     }
   }
 
@@ -292,8 +297,9 @@ export function ChatPanel(): JSX.Element {
       }
     } catch (error) {
       console.error('Failed to load session:', error)
+      toast.error('Load Failed', 'Could not load chat session')
     }
-  }, [setCurrentSessionId, setMessages, setShowSessionHistory])
+  }, [setCurrentSessionId, setMessages, setShowSessionHistory, toast])
 
   const startNewChat = useCallback(() => {
     setCurrentSessionId(null)
@@ -309,10 +315,12 @@ export function ChatPanel(): JSX.Element {
         setCurrentSessionId(null)
         setMessages([])
       }
+      toast.success('Deleted', 'Session deleted')
     } catch (error) {
       console.error('Failed to delete session:', error)
+      toast.error('Delete Failed', 'Could not delete session')
     }
-  }, [sessions, currentSessionId, setSessions, setCurrentSessionId, setMessages])
+  }, [sessions, currentSessionId, setSessions, setCurrentSessionId, setMessages, toast])
 
   // Filter sessions by current agent type
   const filteredSessions = sessions.filter(s => s.agentType === currentAgentType)

@@ -283,7 +283,7 @@ function setupIpcHandlers(): void {
   })
 
   ipcMain.handle(IPC_CHANNELS.WORKFLOW_LIST, async (_, projectId) => {
-    return databaseService.getWorkflowsByProject(projectId)
+    return databaseService.listWorkflows(projectId)
   })
 
   ipcMain.handle(
