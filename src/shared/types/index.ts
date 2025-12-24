@@ -185,6 +185,7 @@ export const IPC_CHANNELS = {
   // Projects
   PROJECT_LIST: 'project:list',
   PROJECT_CREATE: 'project:create',
+  PROJECT_CREATE_NEW: 'project:create-new',
   PROJECT_OPEN: 'project:open',
   PROJECT_DELETE: 'project:delete',
   PROJECT_SELECT_FOLDER: 'project:select-folder',

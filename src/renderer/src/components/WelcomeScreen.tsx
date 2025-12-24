@@ -4,6 +4,8 @@ import { useAppStore } from '../stores/appStore'
 export function WelcomeScreen(): JSX.Element {
   const { addProject, setCurrentProject, projects } = useAppStore()
   const [isLoading, setIsLoading] = useState(false)
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
 
   const handleOpenProject = async (): Promise<void> => {
     setIsLoading(true)
@@ -18,6 +20,32 @@ export function WelcomeScreen(): JSX.Element {
       console.error('Failed to open project:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleNewProject = async (): Promise<void> => {
+    if (!newProjectName.trim()) return
+
+    setIsLoading(true)
+    try {
+      const parentPath = await window.electronAPI.projects.selectFolder()
+      if (parentPath) {
+        const projectPath = await window.electronAPI.projects.createNew({
+          name: newProjectName.trim(),
+          parentPath
+        })
+        if (projectPath) {
+          const project = await window.electronAPI.projects.create({ path: projectPath })
+          addProject(project)
+          setCurrentProject(project)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to create project:', error)
+    } finally {
+      setIsLoading(false)
+      setShowNewProjectModal(false)
+      setNewProjectName('')
     }
   }
 
@@ -62,14 +90,57 @@ export function WelcomeScreen(): JSX.Element {
             </p>
           </button>
 
-          <div className="p-6 bg-card border border-border rounded-xl opacity-60 cursor-not-allowed">
-            <div className="text-3xl mb-3">✨</div>
+          <button
+            onClick={() => setShowNewProjectModal(true)}
+            disabled={isLoading}
+            className="p-6 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-card/80 transition-all group text-left"
+          >
+            <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">✨</div>
             <h3 className="font-semibold mb-1">New Project</h3>
             <p className="text-sm text-muted-foreground">
-              Create a new project with AI scaffolding (Coming soon)
+              Create a new project folder
             </p>
-          </div>
+          </button>
         </div>
+
+        {/* New Project Modal */}
+        {showNewProjectModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md mx-4">
+              <h2 className="text-lg font-semibold mb-4">Create New Project</h2>
+              <input
+                type="text"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder="Project name"
+                autoFocus
+                className="w-full px-3 py-2 bg-secondary border border-border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-primary"
+                onKeyDown={(e) => e.key === 'Enter' && handleNewProject()}
+              />
+              <p className="text-xs text-muted-foreground mb-4">
+                You'll select a parent folder where the project will be created.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowNewProjectModal(false)
+                    setNewProjectName('')
+                  }}
+                  className="px-4 py-2 text-sm hover:bg-secondary rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleNewProject}
+                  disabled={!newProjectName.trim() || isLoading}
+                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {isLoading ? 'Creating...' : 'Select Folder & Create'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Recent projects */}
         {projects.length > 0 && (

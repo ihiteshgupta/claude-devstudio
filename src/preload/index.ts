@@ -59,6 +59,9 @@ const api = {
     create: (project: { name?: string; path: string; description?: string }): Promise<Project> => {
       return ipcRenderer.invoke(IPC_CHANNELS.PROJECT_CREATE, project)
     },
+    createNew: (input: { name: string; parentPath: string }): Promise<string> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.PROJECT_CREATE_NEW, input)
+    },
     open: (projectId: string): Promise<Project | null> => {
       return ipcRenderer.invoke(IPC_CHANNELS.PROJECT_OPEN, projectId)
     },

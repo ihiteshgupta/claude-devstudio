@@ -137,6 +137,20 @@ class ProjectService {
     }
     return deleted
   }
+
+  /**
+   * Create a new project folder
+   */
+  createNewProject(input: { name: string; parentPath: string }): string {
+    const projectPath = join(input.parentPath, input.name)
+
+    if (existsSync(projectPath)) {
+      throw new Error(`Folder already exists: ${projectPath}`)
+    }
+
+    mkdirSync(projectPath, { recursive: true })
+    return projectPath
+  }
 }
 
 export const projectService = new ProjectService()

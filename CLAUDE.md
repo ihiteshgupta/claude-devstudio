@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Sakha DevStudio is an AI-powered Agile SDLC desktop application built with Electron. It integrates with Claude Code CLI to provide multiple AI agent personas (Developer, Product Owner, Tester, Security, DevOps, Documentation) for software development workflows.
+Claude DevStudio is an AI-powered Agile SDLC desktop application built with Electron. It integrates with Claude Code CLI to provide multiple AI agent personas (Developer, Product Owner, Tester, Security, DevOps, Documentation) for software development workflows.
 
 ## Build & Development Commands
 
@@ -23,6 +23,11 @@ npm run lint             # ESLint for .ts/.tsx files
 npm run typecheck        # Type check all TypeScript
 npm run typecheck:main   # Type check main process only
 npm run typecheck:renderer  # Type check renderer only
+
+# Testing
+npm run test             # Run E2E tests with Playwright
+npm run test:ui          # Run tests with Playwright UI
+npm run test:report      # Show test report
 ```
 
 ## Architecture
@@ -32,7 +37,7 @@ This is an Electron app using electron-vite with three distinct processes:
 ### Main Process (`src/main/`)
 - **index.ts**: App lifecycle, window management, IPC handler registration
 - **services/claude.service.ts**: Spawns Claude CLI processes, manages streaming responses via EventEmitter
-- **services/database.service.ts**: SQLite persistence using better-sqlite3 (stores in userData/sakha-data/)
+- **services/database.service.ts**: SQLite persistence using better-sqlite3 (stores in userData/claude-data/)
 - **services/workflow.service.ts**: Multi-agent pipeline orchestration with templates
 - **services/project.service.ts**: Project CRUD via electron-store
 - **services/file.service.ts**: File tree and content reading for project context

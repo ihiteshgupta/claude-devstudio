@@ -126,6 +126,10 @@ function setupIpcHandlers(): void {
     return projectService.createProject(project)
   })
 
+  ipcMain.handle(IPC_CHANNELS.PROJECT_CREATE_NEW, async (_, input) => {
+    return projectService.createNewProject(input)
+  })
+
   ipcMain.handle(IPC_CHANNELS.PROJECT_OPEN, async (_, projectId) => {
     return projectService.openProject(projectId)
   })
