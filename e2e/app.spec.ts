@@ -9,14 +9,14 @@ test.describe('Claude DevStudio E2E Tests', () => {
     })
 
     test('should display welcome screen when no project is selected', async ({ page }) => {
-      // Wait for the welcome screen to be visible
-      await expect(page.locator('text=Claude DevStudio')).toBeVisible()
+      // Wait for the welcome screen to be visible - use first() to handle multiple matches
+      await expect(page.locator('h1:has-text("Claude DevStudio")').first()).toBeVisible()
       await expect(page.locator('text=AI-powered Agile SDLC')).toBeVisible()
     })
 
     test('should show Open Project and New Project buttons', async ({ page }) => {
-      await expect(page.locator('text=Open Project')).toBeVisible()
-      await expect(page.locator('text=New Project')).toBeVisible()
+      await expect(page.locator('button:has-text("Open Project")')).toBeVisible()
+      await expect(page.locator('button:has-text("New Project")')).toBeVisible()
     })
 
     test('should display AI Agents section', async ({ page }) => {
@@ -29,8 +29,8 @@ test.describe('Claude DevStudio E2E Tests', () => {
 
   test.describe('Sidebar Navigation', () => {
     test('should show sidebar with navigation tabs', async ({ page }) => {
-      await expect(page.locator('text=Projects')).toBeVisible()
-      await expect(page.locator('text=View')).toBeVisible()
+      await expect(page.locator('h2:has-text("Projects")')).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'View', exact: true })).toBeVisible()
     })
 
     test('should have all view mode tabs', async ({ page }) => {
