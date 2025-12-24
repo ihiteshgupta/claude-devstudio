@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { Project, AgentType, AgentMessage, ClaudeStatus, ChatSession, Sprint } from '@shared/types'
 
-export type ViewMode = 'chat' | 'workflows' | 'stories' | 'sprints'
+export type ViewMode = 'chat' | 'workflows' | 'stories' | 'sprints' | 'git'
 
 interface AppState {
   // Claude status

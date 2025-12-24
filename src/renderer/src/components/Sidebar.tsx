@@ -15,7 +15,8 @@ const VIEW_TABS: { mode: ViewMode; name: string; icon: string }[] = [
   { mode: 'chat', name: 'Chat', icon: '💬' },
   { mode: 'workflows', name: 'Workflows', icon: '🔄' },
   { mode: 'stories', name: 'Stories', icon: '📝' },
-  { mode: 'sprints', name: 'Sprints', icon: '📅' }
+  { mode: 'sprints', name: 'Sprints', icon: '📅' },
+  { mode: 'git', name: 'Git', icon: '🔀' }
 ]
 
 export function Sidebar(): JSX.Element {
@@ -230,6 +231,17 @@ export function Sidebar(): JSX.Element {
           <div className="text-xs text-muted-foreground space-y-2">
             <p>Manage sprints and track story progress with the Kanban board.</p>
             <p className="text-purple-400">Drag and drop stories between columns to update their status.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Git info - Only show in git mode */}
+      {viewMode === 'git' && (
+        <div className="flex-1 p-4 overflow-y-auto">
+          <h2 className="text-sm font-semibold text-foreground mb-3">Version Control</h2>
+          <div className="text-xs text-muted-foreground space-y-2">
+            <p>View repository status, stage changes, and commit.</p>
+            <p>Browse commit history and manage branches.</p>
           </div>
         </div>
       )}

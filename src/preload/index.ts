@@ -13,7 +13,10 @@ import {
   type Workflow,
   type WorkflowStep,
   type WorkflowTemplate,
-  type FileNode
+  type FileNode,
+  type GitStatus,
+  type GitCommit,
+  type GitBranch
 } from '@shared/types'
 
 // Stream callback type
@@ -267,6 +270,40 @@ const api = {
         { id: 'code-review-security', name: 'Code Review + Security Audit', description: 'Review code for quality and security issues', stepCount: 2 },
         { id: 'full-feature-pipeline', name: 'Full Feature Pipeline', description: 'Complete workflow from story to deployed feature', stepCount: 6 }
       ]
+    }
+  },
+
+  // Git
+  git: {
+    status: (projectPath: string): Promise<GitStatus> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_STATUS, projectPath)
+    },
+    log: (projectPath: string, limit?: number): Promise<GitCommit[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_LOG, { projectPath, limit })
+    },
+    branches: (projectPath: string): Promise<GitBranch[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_BRANCHES, projectPath)
+    },
+    checkout: (projectPath: string, branch: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_CHECKOUT, { projectPath, branch })
+    },
+    stage: (projectPath: string, files: string[]): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE, { projectPath, files })
+    },
+    unstage: (projectPath: string, files: string[]): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE, { projectPath, files })
+    },
+    commit: (projectPath: string, message: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, { projectPath, message })
+    },
+    diff: (projectPath: string, file?: string): Promise<string> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_DIFF, { projectPath, file })
+    },
+    pull: (projectPath: string): Promise<{ success: boolean; summary: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_PULL, projectPath)
+    },
+    push: (projectPath: string): Promise<{ success: boolean; summary: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.GIT_PUSH, projectPath)
     }
   }
 }

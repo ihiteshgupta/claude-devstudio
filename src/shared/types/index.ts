@@ -138,6 +138,42 @@ export interface FileNode {
   size?: number
 }
 
+// Git
+export type GitFileStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'untracked'
+
+export interface GitFileChange {
+  path: string
+  status: GitFileStatus
+}
+
+export interface GitStatus {
+  isRepo: boolean
+  current: string | null
+  tracking: string | null
+  ahead: number
+  behind: number
+  staged: GitFileChange[]
+  unstaged: GitFileChange[]
+  untracked: string[]
+}
+
+export interface GitCommit {
+  hash: string
+  hashShort: string
+  date: string
+  message: string
+  authorName: string
+  authorEmail: string
+  body?: string
+}
+
+export interface GitBranch {
+  name: string
+  current: boolean
+  tracking?: string
+  commit: string
+}
+
 // IPC Channel names - type-safe channel definitions
 export const IPC_CHANNELS = {
   // Claude CLI
@@ -202,6 +238,18 @@ export const IPC_CHANNELS = {
   FILES_READ_CONTENT: 'files:read-content',
   FILES_GET_CONTEXT: 'files:get-context',
   FILES_GET_SUMMARY: 'files:get-summary',
+
+  // Git
+  GIT_STATUS: 'git:status',
+  GIT_LOG: 'git:log',
+  GIT_BRANCHES: 'git:branches',
+  GIT_CHECKOUT: 'git:checkout',
+  GIT_STAGE: 'git:stage',
+  GIT_UNSTAGE: 'git:unstage',
+  GIT_COMMIT: 'git:commit',
+  GIT_DIFF: 'git:diff',
+  GIT_PULL: 'git:pull',
+  GIT_PUSH: 'git:push',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

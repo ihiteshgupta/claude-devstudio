@@ -6,6 +6,7 @@ import { projectService } from './services/project.service'
 import { databaseService } from './services/database.service'
 import { workflowService } from './services/workflow.service'
 import { fileService } from './services/file.service'
+import { gitService } from './services/git.service'
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -320,6 +321,47 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.FILES_GET_SUMMARY, async (_, projectPath) => {
     return fileService.getProjectSummary(projectPath)
+  })
+
+  // Git handlers
+  ipcMain.handle(IPC_CHANNELS.GIT_STATUS, async (_, projectPath) => {
+    return gitService.getStatus(projectPath)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_LOG, async (_, { projectPath, limit }) => {
+    return gitService.getLog(projectPath, limit)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_BRANCHES, async (_, projectPath) => {
+    return gitService.getBranches(projectPath)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_CHECKOUT, async (_, { projectPath, branch }) => {
+    return gitService.checkout(projectPath, branch)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_STAGE, async (_, { projectPath, files }) => {
+    return gitService.stage(projectPath, files)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_UNSTAGE, async (_, { projectPath, files }) => {
+    return gitService.unstage(projectPath, files)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_COMMIT, async (_, { projectPath, message }) => {
+    return gitService.commit(projectPath, message)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_DIFF, async (_, { projectPath, file }) => {
+    return gitService.getDiff(projectPath, file)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_PULL, async (_, projectPath) => {
+    return gitService.pull(projectPath)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.GIT_PUSH, async (_, projectPath) => {
+    return gitService.push(projectPath)
   })
 }
 
