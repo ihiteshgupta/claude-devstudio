@@ -7,6 +7,8 @@ import {
   type ChatSession,
   type AgentMessage,
   type UserStory,
+  type Sprint,
+  type SprintStatus,
   type TestCase,
   type Workflow,
   type WorkflowStep,
@@ -131,6 +133,42 @@ const api = {
       prompt: string
     }): Promise<{ title: string; description: string; acceptanceCriteria: string }> => {
       return ipcRenderer.invoke(IPC_CHANNELS.STORY_GENERATE_FROM_PROMPT, params)
+    }
+  },
+
+  // Sprints
+  sprints: {
+    create: (params: {
+      projectId: string
+      name: string
+      description?: string
+      startDate: string | Date
+      endDate: string | Date
+      goal?: string
+    }): Promise<Sprint> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_CREATE, {
+        ...params,
+        startDate: typeof params.startDate === 'string' ? params.startDate : params.startDate.toISOString(),
+        endDate: typeof params.endDate === 'string' ? params.endDate : params.endDate.toISOString()
+      })
+    },
+    list: (projectId: string): Promise<Sprint[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_LIST, projectId)
+    },
+    get: (sprintId: string): Promise<Sprint | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_GET, sprintId)
+    },
+    update: (sprintId: string, updates: Partial<Omit<Sprint, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>>): Promise<Sprint | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_UPDATE, { sprintId, updates })
+    },
+    delete: (sprintId: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_DELETE, sprintId)
+    },
+    addStory: (sprintId: string, storyId: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_ADD_STORY, { sprintId, storyId })
+    },
+    removeStory: (storyId: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_REMOVE_STORY, storyId)
     }
   },
 

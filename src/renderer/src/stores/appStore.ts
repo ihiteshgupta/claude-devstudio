@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import type { Project, AgentType, AgentMessage, ClaudeStatus, ChatSession } from '@shared/types'
+import type { Project, AgentType, AgentMessage, ClaudeStatus, ChatSession, Sprint } from '@shared/types'
 
-export type ViewMode = 'chat' | 'workflows' | 'stories'
+export type ViewMode = 'chat' | 'workflows' | 'stories' | 'sprints'
 
 interface AppState {
   // Claude status
@@ -32,6 +32,15 @@ interface AppState {
   updateMessage: (id: string, updates: Partial<AgentMessage>) => void
   appendMessageContent: (id: string, content: string) => void
   clearMessages: () => void
+
+  // Sprints
+  sprints: Sprint[]
+  currentSprint: Sprint | null
+  setSprints: (sprints: Sprint[]) => void
+  setCurrentSprint: (sprint: Sprint | null) => void
+  addSprint: (sprint: Sprint) => void
+  updateSprint: (sprintId: string, updates: Partial<Sprint>) => void
+  removeSprint: (sprintId: string) => void
 
   // UI State
   viewMode: ViewMode
@@ -94,6 +103,29 @@ export const useAppStore = create<AppState>((set) => ({
       )
     })),
   clearMessages: () => set({ messages: [], currentSessionId: null }),
+
+  // Sprints
+  sprints: [],
+  currentSprint: null,
+  setSprints: (sprints) => set({ sprints }),
+  setCurrentSprint: (sprint) => set({ currentSprint: sprint }),
+  addSprint: (sprint) =>
+    set((state) => ({
+      sprints: [sprint, ...state.sprints.filter((s) => s.id !== sprint.id)]
+    })),
+  updateSprint: (sprintId, updates) =>
+    set((state) => ({
+      sprints: state.sprints.map((s) => (s.id === sprintId ? { ...s, ...updates } : s)),
+      currentSprint:
+        state.currentSprint?.id === sprintId
+          ? { ...state.currentSprint, ...updates }
+          : state.currentSprint
+    })),
+  removeSprint: (sprintId) =>
+    set((state) => ({
+      sprints: state.sprints.filter((s) => s.id !== sprintId),
+      currentSprint: state.currentSprint?.id === sprintId ? null : state.currentSprint
+    })),
 
   // UI State
   viewMode: 'chat',

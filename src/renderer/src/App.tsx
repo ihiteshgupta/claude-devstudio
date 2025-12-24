@@ -5,6 +5,7 @@ import { Sidebar } from './components/Sidebar'
 import { ChatPanel } from './components/ChatPanel'
 import { WorkflowPanel } from './components/WorkflowPanel'
 import { StoriesPanel } from './components/StoriesPanel'
+import { SprintPanel } from './components/SprintPanel'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { StatusBar } from './components/StatusBar'
 
@@ -60,6 +61,8 @@ function App(): JSX.Element {
             <WorkflowPanel projectPath={currentProject.path} />
           ) : viewMode === 'stories' ? (
             <StoriesPanel projectPath={currentProject.path} />
+          ) : viewMode === 'sprints' ? (
+            <SprintPanel projectPath={currentProject.path} />
           ) : (
             <ChatPanel />
           )}

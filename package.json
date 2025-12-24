@@ -20,6 +20,7 @@
     "typecheck:renderer": "tsc --noEmit -p tsconfig.web.json"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
     "@radix-ui/react-scroll-area": "^1.2.0",

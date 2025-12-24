@@ -211,6 +211,47 @@ function setupIpcHandlers(): void {
     }
   )
 
+  // Sprint handlers
+  ipcMain.handle(IPC_CHANNELS.SPRINT_CREATE, async (_, params) => {
+    return databaseService.createSprint({
+      ...params,
+      startDate: new Date(params.startDate),
+      endDate: new Date(params.endDate)
+    })
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_LIST, async (_, projectId) => {
+    return databaseService.listSprints(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_GET, async (_, sprintId) => {
+    return databaseService.getSprint(sprintId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_UPDATE, async (_, { sprintId, updates }) => {
+    // Convert date strings to Date objects if present
+    const processedUpdates = { ...updates }
+    if (processedUpdates.startDate) {
+      processedUpdates.startDate = new Date(processedUpdates.startDate)
+    }
+    if (processedUpdates.endDate) {
+      processedUpdates.endDate = new Date(processedUpdates.endDate)
+    }
+    return databaseService.updateSprint(sprintId, processedUpdates)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_DELETE, async (_, sprintId) => {
+    return databaseService.deleteSprint(sprintId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_ADD_STORY, async (_, { sprintId, storyId }) => {
+    return databaseService.addStoryToSprint(sprintId, storyId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_REMOVE_STORY, async (_, storyId) => {
+    return databaseService.removeStoryFromSprint(storyId)
+  })
+
   // Test Case handlers
   ipcMain.handle(IPC_CHANNELS.TEST_CASE_CREATE, async (_, params) => {
     return databaseService.createTestCase(params)

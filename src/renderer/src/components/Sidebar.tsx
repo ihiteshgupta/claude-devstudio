@@ -14,7 +14,8 @@ const AGENTS: { type: AgentType; name: string; icon: string; description: string
 const VIEW_TABS: { mode: ViewMode; name: string; icon: string }[] = [
   { mode: 'chat', name: 'Chat', icon: '💬' },
   { mode: 'workflows', name: 'Workflows', icon: '🔄' },
-  { mode: 'stories', name: 'Stories', icon: '📝' }
+  { mode: 'stories', name: 'Stories', icon: '📝' },
+  { mode: 'sprints', name: 'Sprints', icon: '📅' }
 ]
 
 export function Sidebar(): JSX.Element {
@@ -218,6 +219,17 @@ export function Sidebar(): JSX.Element {
           <h2 className="text-sm font-semibold text-foreground mb-3">User Stories</h2>
           <div className="text-xs text-muted-foreground">
             Create and manage user stories for your project. Generate test cases automatically.
+          </div>
+        </div>
+      )}
+
+      {/* Sprints info - Only show in sprints mode */}
+      {viewMode === 'sprints' && (
+        <div className="flex-1 p-4 overflow-y-auto">
+          <h2 className="text-sm font-semibold text-foreground mb-3">Sprint Board</h2>
+          <div className="text-xs text-muted-foreground space-y-2">
+            <p>Manage sprints and track story progress with the Kanban board.</p>
+            <p className="text-purple-400">Drag and drop stories between columns to update their status.</p>
           </div>
         </div>
       )}

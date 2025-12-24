@@ -53,12 +53,29 @@ export interface ChatSession {
 export interface UserStory {
   id: string
   projectId: string
+  sprintId?: string
   title: string
   description?: string
   acceptanceCriteria?: string
   storyPoints?: number
   status: 'backlog' | 'todo' | 'in-progress' | 'review' | 'done'
   priority: 'low' | 'medium' | 'high' | 'critical'
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Sprints
+export type SprintStatus = 'planned' | 'active' | 'completed' | 'cancelled'
+
+export interface Sprint {
+  id: string
+  projectId: string
+  name: string
+  description?: string
+  startDate: Date
+  endDate: Date
+  status: SprintStatus
+  goal?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -149,6 +166,15 @@ export const IPC_CHANNELS = {
   STORY_UPDATE: 'story:update',
   STORY_DELETE: 'story:delete',
   STORY_GENERATE_FROM_PROMPT: 'story:generate-from-prompt',
+
+  // Sprints
+  SPRINT_CREATE: 'sprint:create',
+  SPRINT_LIST: 'sprint:list',
+  SPRINT_GET: 'sprint:get',
+  SPRINT_UPDATE: 'sprint:update',
+  SPRINT_DELETE: 'sprint:delete',
+  SPRINT_ADD_STORY: 'sprint:add-story',
+  SPRINT_REMOVE_STORY: 'sprint:remove-story',
 
   // Test Cases
   TEST_CASE_CREATE: 'test-case:create',

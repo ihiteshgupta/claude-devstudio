@@ -2,7 +2,7 @@ import Database from 'better-sqlite3'
 import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
-import type { AgentMessage, AgentType, ChatSession } from '@shared/types'
+import type { AgentMessage, AgentType, ChatSession, Sprint, SprintStatus } from '@shared/types'
 
 class DatabaseService {
   private db: Database.Database
@@ -108,13 +108,38 @@ class DatabaseService {
       )
     `)
 
+    // Sprints table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS sprints (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'planned',
+        goal TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `)
+
+    // Add sprint_id to user_stories if not exists
+    try {
+      this.db.exec(`ALTER TABLE user_stories ADD COLUMN sprint_id TEXT REFERENCES sprints(id) ON DELETE SET NULL`)
+    } catch {
+      // Column already exists, ignore
+    }
+
     // Create indexes
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_sessions_project ON chat_sessions(project_id);
       CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
       CREATE INDEX IF NOT EXISTS idx_workflows_project ON workflows(project_id);
       CREATE INDEX IF NOT EXISTS idx_stories_project ON user_stories(project_id);
+      CREATE INDEX IF NOT EXISTS idx_stories_sprint ON user_stories(sprint_id);
       CREATE INDEX IF NOT EXISTS idx_testcases_story ON test_cases(user_story_id);
+      CREATE INDEX IF NOT EXISTS idx_sprints_project ON sprints(project_id);
     `)
   }
 
@@ -300,12 +325,25 @@ class DatabaseService {
     }
   }
 
-  listUserStories(projectId: string): UserStory[] {
-    const stories = this.db
-      .prepare('SELECT * FROM user_stories WHERE project_id = ? ORDER BY created_at DESC')
-      .all(projectId) as Array<{
+  listUserStories(projectId: string, sprintId?: string): UserStory[] {
+    let query = 'SELECT * FROM user_stories WHERE project_id = ?'
+    const params: (string | null)[] = [projectId]
+
+    if (sprintId !== undefined) {
+      if (sprintId === null) {
+        query += ' AND sprint_id IS NULL'
+      } else {
+        query += ' AND sprint_id = ?'
+        params.push(sprintId)
+      }
+    }
+
+    query += ' ORDER BY created_at DESC'
+
+    const stories = this.db.prepare(query).all(...params) as Array<{
       id: string
       project_id: string
+      sprint_id: string | null
       title: string
       description: string | null
       acceptance_criteria: string | null
@@ -319,6 +357,7 @@ class DatabaseService {
     return stories.map((s) => ({
       id: s.id,
       projectId: s.project_id,
+      sprintId: s.sprint_id || undefined,
       title: s.title,
       description: s.description || undefined,
       acceptanceCriteria: s.acceptance_criteria || undefined,
@@ -330,7 +369,7 @@ class DatabaseService {
     }))
   }
 
-  updateUserStory(id: string, updates: Partial<UserStory>): void {
+  updateUserStory(id: string, updates: Partial<UserStory>): UserStory | null {
     const fields: string[] = []
     const values: (string | number | null)[] = []
 
@@ -358,6 +397,10 @@ class DatabaseService {
       fields.push('priority = ?')
       values.push(updates.priority)
     }
+    if ('sprintId' in updates) {
+      fields.push('sprint_id = ?')
+      values.push(updates.sprintId || null)
+    }
 
     if (fields.length > 0) {
       fields.push('updated_at = ?')
@@ -366,10 +409,207 @@ class DatabaseService {
 
       this.db.prepare(`UPDATE user_stories SET ${fields.join(', ')} WHERE id = ?`).run(...values)
     }
+
+    // Return updated story
+    const story = this.db.prepare('SELECT * FROM user_stories WHERE id = ?').get(id) as {
+      id: string
+      project_id: string
+      sprint_id: string | null
+      title: string
+      description: string | null
+      acceptance_criteria: string | null
+      story_points: number | null
+      status: string
+      priority: string
+      created_at: string
+      updated_at: string
+    } | undefined
+
+    if (!story) return null
+
+    return {
+      id: story.id,
+      projectId: story.project_id,
+      sprintId: story.sprint_id || undefined,
+      title: story.title,
+      description: story.description || undefined,
+      acceptanceCriteria: story.acceptance_criteria || undefined,
+      storyPoints: story.story_points || undefined,
+      status: story.status,
+      priority: story.priority,
+      createdAt: new Date(story.created_at),
+      updatedAt: new Date(story.updated_at)
+    }
   }
 
   deleteUserStory(id: string): boolean {
     const result = this.db.prepare('DELETE FROM user_stories WHERE id = ?').run(id)
+    return result.changes > 0
+  }
+
+  // ============ Sprints ============
+
+  createSprint(data: {
+    projectId: string
+    name: string
+    description?: string
+    startDate: Date
+    endDate: Date
+    goal?: string
+  }): Sprint {
+    const id = `sprint_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+    const now = new Date().toISOString()
+
+    this.db
+      .prepare(
+        `INSERT INTO sprints (id, project_id, name, description, start_date, end_date, goal, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'planned', ?, ?)`
+      )
+      .run(
+        id,
+        data.projectId,
+        data.name,
+        data.description || null,
+        data.startDate.toISOString(),
+        data.endDate.toISOString(),
+        data.goal || null,
+        now,
+        now
+      )
+
+    return {
+      id,
+      projectId: data.projectId,
+      name: data.name,
+      description: data.description,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      status: 'planned',
+      goal: data.goal,
+      createdAt: new Date(now),
+      updatedAt: new Date(now)
+    }
+  }
+
+  getSprint(sprintId: string): Sprint | null {
+    const sprint = this.db.prepare('SELECT * FROM sprints WHERE id = ?').get(sprintId) as {
+      id: string
+      project_id: string
+      name: string
+      description: string | null
+      start_date: string
+      end_date: string
+      status: SprintStatus
+      goal: string | null
+      created_at: string
+      updated_at: string
+    } | undefined
+
+    if (!sprint) return null
+
+    return {
+      id: sprint.id,
+      projectId: sprint.project_id,
+      name: sprint.name,
+      description: sprint.description || undefined,
+      startDate: new Date(sprint.start_date),
+      endDate: new Date(sprint.end_date),
+      status: sprint.status,
+      goal: sprint.goal || undefined,
+      createdAt: new Date(sprint.created_at),
+      updatedAt: new Date(sprint.updated_at)
+    }
+  }
+
+  listSprints(projectId: string): Sprint[] {
+    const sprints = this.db
+      .prepare('SELECT * FROM sprints WHERE project_id = ? ORDER BY start_date DESC')
+      .all(projectId) as Array<{
+      id: string
+      project_id: string
+      name: string
+      description: string | null
+      start_date: string
+      end_date: string
+      status: SprintStatus
+      goal: string | null
+      created_at: string
+      updated_at: string
+    }>
+
+    return sprints.map((s) => ({
+      id: s.id,
+      projectId: s.project_id,
+      name: s.name,
+      description: s.description || undefined,
+      startDate: new Date(s.start_date),
+      endDate: new Date(s.end_date),
+      status: s.status,
+      goal: s.goal || undefined,
+      createdAt: new Date(s.created_at),
+      updatedAt: new Date(s.updated_at)
+    }))
+  }
+
+  updateSprint(id: string, updates: Partial<Sprint>): Sprint | null {
+    const fields: string[] = []
+    const values: (string | null)[] = []
+
+    if (updates.name !== undefined) {
+      fields.push('name = ?')
+      values.push(updates.name)
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?')
+      values.push(updates.description || null)
+    }
+    if (updates.startDate !== undefined) {
+      fields.push('start_date = ?')
+      values.push(updates.startDate.toISOString())
+    }
+    if (updates.endDate !== undefined) {
+      fields.push('end_date = ?')
+      values.push(updates.endDate.toISOString())
+    }
+    if (updates.status !== undefined) {
+      fields.push('status = ?')
+      values.push(updates.status)
+    }
+    if (updates.goal !== undefined) {
+      fields.push('goal = ?')
+      values.push(updates.goal || null)
+    }
+
+    if (fields.length > 0) {
+      fields.push('updated_at = ?')
+      values.push(new Date().toISOString())
+      values.push(id)
+
+      this.db.prepare(`UPDATE sprints SET ${fields.join(', ')} WHERE id = ?`).run(...values)
+    }
+
+    return this.getSprint(id)
+  }
+
+  deleteSprint(id: string): boolean {
+    // First, unassign all stories from this sprint
+    this.db.prepare('UPDATE user_stories SET sprint_id = NULL WHERE sprint_id = ?').run(id)
+    // Then delete the sprint
+    const result = this.db.prepare('DELETE FROM sprints WHERE id = ?').run(id)
+    return result.changes > 0
+  }
+
+  addStoryToSprint(sprintId: string, storyId: string): boolean {
+    const result = this.db
+      .prepare('UPDATE user_stories SET sprint_id = ?, updated_at = ? WHERE id = ?')
+      .run(sprintId, new Date().toISOString(), storyId)
+    return result.changes > 0
+  }
+
+  removeStoryFromSprint(storyId: string): boolean {
+    const result = this.db
+      .prepare('UPDATE user_stories SET sprint_id = NULL, updated_at = ? WHERE id = ?')
+      .run(new Date().toISOString(), storyId)
     return result.changes > 0
   }
 
@@ -633,6 +873,7 @@ class DatabaseService {
 export interface UserStory {
   id: string
   projectId: string
+  sprintId?: string
   title: string
   description?: string
   acceptanceCriteria?: string
