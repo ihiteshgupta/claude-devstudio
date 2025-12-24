@@ -322,6 +322,213 @@ export interface GitBranch {
   commit: string
 }
 
+// ============================================
+// Roadmap & Autonomous Task System Types
+// ============================================
+
+// Roadmap Item Types
+export type RoadmapItemType = 'epic' | 'feature' | 'milestone' | 'task'
+export type RoadmapItemStatus = 'planned' | 'in-progress' | 'completed' | 'blocked' | 'cancelled'
+export type RoadmapLane = 'now' | 'next' | 'later' | 'done'
+export type RoadmapPriority = 'low' | 'medium' | 'high' | 'critical'
+
+export interface RoadmapItem {
+  id: string
+  projectId: string
+  parentId?: string
+  title: string
+  description?: string
+  type: RoadmapItemType
+  status: RoadmapItemStatus
+  priority: RoadmapPriority
+  targetQuarter?: string // e.g., "Q1-2025"
+  lane: RoadmapLane
+  startDate?: Date
+  targetDate?: Date
+  completedDate?: Date
+  storyPoints?: number
+  owner?: string
+  tags?: string[]
+  children?: RoadmapItem[] // For hierarchical display
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Task Queue Types
+export type TaskType =
+  | 'code-generation'
+  | 'code-review'
+  | 'testing'
+  | 'documentation'
+  | 'security-audit'
+  | 'deployment'
+  | 'refactoring'
+  | 'bug-fix'
+  | 'tech-decision'
+  | 'decomposition'
+
+export type AutonomyLevel = 'auto' | 'approval_gates' | 'supervised'
+export type TaskStatus =
+  | 'pending'
+  | 'queued'
+  | 'running'
+  | 'waiting_approval'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'skipped'
+
+export interface TaskInputData {
+  prompt?: string
+  context?: string
+  files?: string[]
+  dependencies?: string[]
+  parentOutput?: string
+  techChoiceId?: string
+  [key: string]: unknown
+}
+
+export interface TaskOutputData {
+  result?: string
+  files?: { path: string; content: string }[]
+  summary?: string
+  metrics?: Record<string, number>
+  nextSteps?: string[]
+  [key: string]: unknown
+}
+
+export interface QueuedTask {
+  id: string
+  projectId: string
+  roadmapItemId?: string
+  parentTaskId?: string
+  title: string
+  description?: string
+  taskType: TaskType
+  autonomyLevel: AutonomyLevel
+  status: TaskStatus
+  agentType?: AgentType
+  priority: number // 0-100, higher = more urgent
+  inputData?: TaskInputData
+  outputData?: TaskOutputData
+  errorMessage?: string
+  approvalRequired: boolean
+  approvalCheckpoint?: string
+  approvedBy?: string
+  approvedAt?: Date
+  estimatedDuration?: number // in seconds
+  actualDuration?: number
+  retryCount: number
+  maxRetries: number
+  subtasks?: QueuedTask[] // For hierarchical display
+  createdAt: Date
+  startedAt?: Date
+  completedAt?: Date
+}
+
+// Tech Advisor Types
+export type TechCategory =
+  | 'framework'
+  | 'database'
+  | 'authentication'
+  | 'hosting'
+  | 'testing'
+  | 'ci-cd'
+  | 'monitoring'
+  | 'caching'
+  | 'messaging'
+  | 'other'
+
+export interface TechOption {
+  name: string
+  description: string
+  pros: string[]
+  cons: string[]
+  learningCurve: 'low' | 'medium' | 'high'
+  communitySupport: 'small' | 'medium' | 'large'
+  isRecommended: boolean
+  estimatedSetupTime?: string
+  links?: { label: string; url: string }[]
+}
+
+export type TechChoiceStatus = 'pending' | 'decided' | 'cancelled'
+
+export interface TechChoice {
+  id: string
+  projectId: string
+  taskId?: string
+  category: TechCategory
+  question: string
+  context?: string
+  options: TechOption[]
+  selectedOption?: string
+  decisionRationale?: string
+  status: TechChoiceStatus
+  decidedBy?: string
+  decidedAt?: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Task Dependencies
+export type DependencyType = 'blocks' | 'required_by' | 'related'
+
+export interface TaskDependency {
+  id: string
+  taskId: string
+  dependsOnTaskId: string
+  dependencyType: DependencyType
+  createdAt: Date
+}
+
+// Approval Gates
+export type GateType = 'manual' | 'quality' | 'security' | 'tech_decision' | 'review'
+export type GateStatus = 'pending' | 'approved' | 'rejected' | 'skipped'
+
+export interface ApprovalGate {
+  id: string
+  taskId: string
+  gateType: GateType
+  title: string
+  description?: string
+  status: GateStatus
+  requiresReview: boolean
+  reviewData?: string
+  approvedBy?: string
+  approvalNotes?: string
+  createdAt: Date
+  resolvedAt?: Date
+}
+
+// Roadmap View Types
+export type RoadmapViewMode = 'kanban' | 'timeline'
+
+export interface RoadmapViewState {
+  mode: RoadmapViewMode
+  selectedLane?: RoadmapLane
+  selectedQuarter?: string
+  expandedItems: string[]
+  filterTypes?: RoadmapItemType[]
+  filterStatus?: RoadmapItemStatus[]
+}
+
+// Task Queue Events (for real-time updates)
+export interface TaskQueueEvent {
+  type:
+    | 'task-queued'
+    | 'task-started'
+    | 'task-progress'
+    | 'task-approval-required'
+    | 'task-completed'
+    | 'task-failed'
+    | 'task-cancelled'
+    | 'queue-paused'
+    | 'queue-resumed'
+  taskId: string
+  data?: unknown
+  timestamp: Date
+}
+
 // IPC Channel names - type-safe channel definitions
 export const IPC_CHANNELS = {
   // Claude CLI
@@ -399,6 +606,47 @@ export const IPC_CHANNELS = {
   GIT_DIFF: 'git:diff',
   GIT_PULL: 'git:pull',
   GIT_PUSH: 'git:push',
+
+  // Roadmap
+  ROADMAP_LIST: 'roadmap:list',
+  ROADMAP_GET: 'roadmap:get',
+  ROADMAP_CREATE: 'roadmap:create',
+  ROADMAP_UPDATE: 'roadmap:update',
+  ROADMAP_DELETE: 'roadmap:delete',
+  ROADMAP_MOVE: 'roadmap:move',
+  ROADMAP_REORDER: 'roadmap:reorder',
+
+  // Task Queue
+  TASK_QUEUE_LIST: 'task-queue:list',
+  TASK_QUEUE_GET: 'task-queue:get',
+  TASK_QUEUE_ENQUEUE: 'task-queue:enqueue',
+  TASK_QUEUE_UPDATE: 'task-queue:update',
+  TASK_QUEUE_CANCEL: 'task-queue:cancel',
+  TASK_QUEUE_REORDER: 'task-queue:reorder',
+  TASK_QUEUE_START: 'task-queue:start',
+  TASK_QUEUE_PAUSE: 'task-queue:pause',
+  TASK_QUEUE_RESUME: 'task-queue:resume',
+  TASK_QUEUE_APPROVE: 'task-queue:approve',
+  TASK_QUEUE_REJECT: 'task-queue:reject',
+  TASK_QUEUE_EVENT: 'task-queue:event',
+
+  // Tech Advisor
+  TECH_ADVISOR_ANALYZE: 'tech-advisor:analyze',
+  TECH_ADVISOR_LIST_CHOICES: 'tech-advisor:list-choices',
+  TECH_ADVISOR_GET_CHOICE: 'tech-advisor:get-choice',
+  TECH_ADVISOR_DECIDE: 'tech-advisor:decide',
+  TECH_ADVISOR_CANCEL: 'tech-advisor:cancel',
+
+  // Task Decomposer
+  DECOMPOSER_DECOMPOSE: 'decomposer:decompose',
+  DECOMPOSER_SUGGEST_AGENTS: 'decomposer:suggest-agents',
+  DECOMPOSER_ESTIMATE: 'decomposer:estimate',
+
+  // Approval Gates
+  APPROVAL_LIST: 'approval:list',
+  APPROVAL_GET: 'approval:get',
+  APPROVAL_APPROVE: 'approval:approve',
+  APPROVAL_REJECT: 'approval:reject',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

@@ -7,6 +7,10 @@ import { databaseService } from './services/database.service'
 import { workflowService } from './services/workflow.service'
 import { fileService } from './services/file.service'
 import { gitService } from './services/git.service'
+import { roadmapService } from './services/roadmap.service'
+import { taskQueueService } from './services/task-queue.service'
+import { techAdvisorService } from './services/tech-advisor.service'
+import { taskDecomposerService } from './services/task-decomposer.service'
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -366,6 +370,105 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.GIT_PUSH, async (_, projectPath) => {
     return gitService.push(projectPath)
+  })
+
+  // Roadmap handlers
+  ipcMain.handle(IPC_CHANNELS.ROADMAP_LIST, async (_, projectId) => {
+    return roadmapService.listItems(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ROADMAP_GET, async (_, id) => {
+    return roadmapService.getItem(id)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ROADMAP_CREATE, async (_, params) => {
+    return roadmapService.createItem(params)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ROADMAP_UPDATE, async (_, { id, updates }) => {
+    return roadmapService.updateItem(id, updates)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ROADMAP_DELETE, async (_, id) => {
+    return roadmapService.deleteItem(id)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ROADMAP_MOVE, async (_, { id, lane }) => {
+    return roadmapService.moveToLane(id, lane)
+  })
+
+  // Task Queue handlers
+  ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_LIST, async (_, projectId) => {
+    return taskQueueService.listTasks(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_GET, async (_, id) => {
+    return taskQueueService.getTask(id)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_ENQUEUE, async (_, params) => {
+    return taskQueueService.enqueueTask(params)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_UPDATE, async (_, { id, updates }) => {
+    if (updates.autonomyLevel) {
+      return taskQueueService.updateAutonomyLevel(id, updates.autonomyLevel)
+    }
+    return taskQueueService.updateTaskStatus(id, updates.status, updates)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_CANCEL, async (_, id) => {
+    return taskQueueService.cancelTask(id)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_START, async (_, { projectId, projectPath }) => {
+    // Forward events to renderer
+    taskQueueService.on('task-event', (event) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.TASK_QUEUE_EVENT, event)
+    })
+    return taskQueueService.startQueue(projectId, { projectPath })
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_PAUSE, async () => {
+    taskQueueService.pauseQueue()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_RESUME, async () => {
+    taskQueueService.resumeQueue()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_APPROVE, async (_, { gateId, approvedBy, notes }) => {
+    return taskQueueService.approveGate(gateId, approvedBy, notes)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_REJECT, async (_, { gateId, rejectedBy, notes }) => {
+    return taskQueueService.rejectGate(gateId, rejectedBy, notes)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.APPROVAL_LIST, async (_, taskId) => {
+    return taskQueueService.listApprovalGates(taskId)
+  })
+
+  // Tech Advisor handlers
+  ipcMain.handle(IPC_CHANNELS.TECH_ADVISOR_ANALYZE, async (_, params) => {
+    return techAdvisorService.analyzeRequirement(params)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TECH_ADVISOR_LIST_CHOICES, async (_, projectId) => {
+    return techAdvisorService.listChoices(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TECH_ADVISOR_GET_CHOICE, async (_, id) => {
+    return techAdvisorService.getChoice(id)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TECH_ADVISOR_DECIDE, async (_, { id, selectedOption, rationale }) => {
+    return techAdvisorService.decide(id, selectedOption, rationale)
+  })
+
+  // Task Decomposer handlers
+  ipcMain.handle(IPC_CHANNELS.DECOMPOSER_DECOMPOSE, async (_, params) => {
+    return taskDecomposerService.decompose(params)
   })
 }
 

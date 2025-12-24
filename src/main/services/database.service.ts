@@ -18,6 +18,13 @@ class DatabaseService {
     this.initTables()
   }
 
+  /**
+   * Get the database instance for direct access
+   */
+  getDb(): Database.Database {
+    return this.db
+  }
+
   private initTables(): void {
     // Chat sessions table
     this.db.exec(`
@@ -131,6 +138,114 @@ class DatabaseService {
       // Column already exists, ignore
     }
 
+    // Roadmap items table (Epics, Features, Milestones)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS roadmap_items (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        parent_id TEXT,
+        title TEXT NOT NULL,
+        description TEXT,
+        type TEXT NOT NULL DEFAULT 'feature',
+        status TEXT NOT NULL DEFAULT 'planned',
+        priority TEXT DEFAULT 'medium',
+        target_quarter TEXT,
+        lane TEXT DEFAULT 'next',
+        start_date TEXT,
+        target_date TEXT,
+        completed_date TEXT,
+        story_points INTEGER,
+        owner TEXT,
+        tags TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (parent_id) REFERENCES roadmap_items(id) ON DELETE SET NULL
+      )
+    `)
+
+    // Task queue table (Autonomous execution)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS task_queue (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        roadmap_item_id TEXT,
+        parent_task_id TEXT,
+        title TEXT NOT NULL,
+        description TEXT,
+        task_type TEXT NOT NULL,
+        autonomy_level TEXT NOT NULL DEFAULT 'supervised',
+        status TEXT NOT NULL DEFAULT 'pending',
+        agent_type TEXT,
+        priority INTEGER DEFAULT 50,
+        input_data TEXT,
+        output_data TEXT,
+        error_message TEXT,
+        approval_required INTEGER DEFAULT 0,
+        approval_checkpoint TEXT,
+        approved_by TEXT,
+        approved_at TEXT,
+        estimated_duration INTEGER,
+        actual_duration INTEGER,
+        retry_count INTEGER DEFAULT 0,
+        max_retries INTEGER DEFAULT 3,
+        created_at TEXT NOT NULL,
+        started_at TEXT,
+        completed_at TEXT,
+        FOREIGN KEY (roadmap_item_id) REFERENCES roadmap_items(id) ON DELETE SET NULL,
+        FOREIGN KEY (parent_task_id) REFERENCES task_queue(id) ON DELETE CASCADE
+      )
+    `)
+
+    // Technology choices table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS tech_choices (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        task_id TEXT,
+        roadmap_item_id TEXT,
+        category TEXT NOT NULL,
+        question TEXT NOT NULL,
+        options TEXT NOT NULL,
+        selected_option_id TEXT,
+        decision_rationale TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        decided_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES task_queue(id) ON DELETE SET NULL,
+        FOREIGN KEY (roadmap_item_id) REFERENCES roadmap_items(id) ON DELETE SET NULL
+      )
+    `)
+
+    // Task dependencies table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS task_dependencies (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        depends_on_task_id TEXT NOT NULL,
+        dependency_type TEXT DEFAULT 'finish-to-start',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES task_queue(id) ON DELETE CASCADE,
+        FOREIGN KEY (depends_on_task_id) REFERENCES task_queue(id) ON DELETE CASCADE
+      )
+    `)
+
+    // Approval gates table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS approval_gates (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        gate_type TEXT NOT NULL,
+        description TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        required_data TEXT,
+        response_data TEXT,
+        created_at TEXT NOT NULL,
+        resolved_at TEXT,
+        FOREIGN KEY (task_id) REFERENCES task_queue(id) ON DELETE CASCADE
+      )
+    `)
+
     // Create indexes
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_sessions_project ON chat_sessions(project_id);
@@ -140,6 +255,16 @@ class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_stories_sprint ON user_stories(sprint_id);
       CREATE INDEX IF NOT EXISTS idx_testcases_story ON test_cases(user_story_id);
       CREATE INDEX IF NOT EXISTS idx_sprints_project ON sprints(project_id);
+      CREATE INDEX IF NOT EXISTS idx_roadmap_project ON roadmap_items(project_id);
+      CREATE INDEX IF NOT EXISTS idx_roadmap_parent ON roadmap_items(parent_id);
+      CREATE INDEX IF NOT EXISTS idx_roadmap_lane ON roadmap_items(lane);
+      CREATE INDEX IF NOT EXISTS idx_roadmap_quarter ON roadmap_items(target_quarter);
+      CREATE INDEX IF NOT EXISTS idx_taskqueue_project ON task_queue(project_id);
+      CREATE INDEX IF NOT EXISTS idx_taskqueue_status ON task_queue(status);
+      CREATE INDEX IF NOT EXISTS idx_taskqueue_parent ON task_queue(parent_task_id);
+      CREATE INDEX IF NOT EXISTS idx_techchoices_project ON tech_choices(project_id);
+      CREATE INDEX IF NOT EXISTS idx_techchoices_status ON tech_choices(status);
+      CREATE INDEX IF NOT EXISTS idx_approvals_task ON approval_gates(task_id);
     `)
   }
 

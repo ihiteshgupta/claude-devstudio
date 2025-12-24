@@ -8,6 +8,8 @@ import { StoriesPanel } from './components/StoriesPanel'
 import { SprintPanel } from './components/SprintPanel'
 import { GitPanel } from './components/GitPanel'
 import { DashboardPanel } from './components/DashboardPanel'
+import { RoadmapPanel } from './components/RoadmapPanel'
+import { TaskQueuePanel } from './components/TaskQueuePanel'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { StatusBar } from './components/StatusBar'
 import { ToastProvider, useToast } from './components/Toast'
@@ -77,6 +79,10 @@ function AppContent(): JSX.Element {
             <SprintPanel projectPath={currentProject.path} />
           ) : viewMode === 'git' ? (
             <GitPanel projectPath={currentProject.path} />
+          ) : viewMode === 'roadmap' ? (
+            <RoadmapPanel projectPath={currentProject.path} />
+          ) : viewMode === 'task-queue' ? (
+            <TaskQueuePanel projectPath={currentProject.path} />
           ) : (
             <ChatPanel />
           )}

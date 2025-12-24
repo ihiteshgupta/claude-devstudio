@@ -14,6 +14,8 @@ const AGENTS: { type: AgentType; name: string; icon: string; description: string
 const VIEW_TABS: { mode: ViewMode; name: string; icon: string }[] = [
   { mode: 'dashboard', name: 'Home', icon: '📊' },
   { mode: 'chat', name: 'Chat', icon: '💬' },
+  { mode: 'roadmap', name: 'Roadmap', icon: '🗺️' },
+  { mode: 'task-queue', name: 'Tasks', icon: '⚡' },
   { mode: 'workflows', name: 'Flows', icon: '🔄' },
   { mode: 'stories', name: 'Stories', icon: '📝' },
   { mode: 'sprints', name: 'Sprints', icon: '📅' },
@@ -227,6 +229,50 @@ export function Sidebar(): JSX.Element {
         <div className="flex-1 p-3 overflow-y-auto">
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Git</h2>
           <p className="text-xs text-muted-foreground">Repository status and commits.</p>
+        </div>
+      )}
+
+      {/* Roadmap info - Only show in roadmap mode */}
+      {viewMode === 'roadmap' && (
+        <div className="flex-1 p-3 overflow-y-auto">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Roadmap</h2>
+          <p className="text-xs text-muted-foreground mb-3">Plan and track epics, features, and milestones.</p>
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span>Now - In active development</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              <span>Next - Upcoming work</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-zinc-500" />
+              <span>Later - Future planning</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task Queue info - Only show in task-queue mode */}
+      {viewMode === 'task-queue' && (
+        <div className="flex-1 p-3 overflow-y-auto">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Task Queue</h2>
+          <p className="text-xs text-muted-foreground mb-3">Autonomous task execution with approval controls.</p>
+          <div className="space-y-2 text-xs">
+            <div className="p-2 rounded bg-secondary/30">
+              <span className="font-medium text-green-400">Auto</span>
+              <p className="text-muted-foreground mt-0.5">Run without stops</p>
+            </div>
+            <div className="p-2 rounded bg-secondary/30">
+              <span className="font-medium text-yellow-400">Gates</span>
+              <p className="text-muted-foreground mt-0.5">Pause at checkpoints</p>
+            </div>
+            <div className="p-2 rounded bg-secondary/30">
+              <span className="font-medium text-blue-400">Supervised</span>
+              <p className="text-muted-foreground mt-0.5">Approve each step</p>
+            </div>
+          </div>
         </div>
       )}
 

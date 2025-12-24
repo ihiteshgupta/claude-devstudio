@@ -16,7 +16,20 @@ import {
   type FileNode,
   type GitStatus,
   type GitCommit,
-  type GitBranch
+  type GitBranch,
+  type RoadmapItem,
+  type RoadmapItemType,
+  type RoadmapItemStatus,
+  type RoadmapLane,
+  type RoadmapPriority,
+  type QueuedTask,
+  type TaskType,
+  type AutonomyLevel,
+  type TaskStatus,
+  type ApprovalGate,
+  type TaskQueueEvent,
+  type TechChoice,
+  type TechCategory
 } from '@shared/types'
 
 // Stream callback type
@@ -307,6 +320,152 @@ const api = {
     },
     push: (projectPath: string): Promise<{ success: boolean; summary: string }> => {
       return ipcRenderer.invoke(IPC_CHANNELS.GIT_PUSH, projectPath)
+    }
+  },
+
+  // Roadmap
+  roadmap: {
+    list: (projectId: string): Promise<RoadmapItem[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ROADMAP_LIST, projectId)
+    },
+    get: (id: string): Promise<RoadmapItem | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ROADMAP_GET, id)
+    },
+    create: (params: {
+      projectId: string
+      parentId?: string
+      title: string
+      description?: string
+      type?: RoadmapItemType
+      status?: RoadmapItemStatus
+      priority?: RoadmapPriority
+      targetQuarter?: string
+      lane?: RoadmapLane
+      startDate?: string
+      targetDate?: string
+      storyPoints?: number
+      owner?: string
+      tags?: string[]
+    }): Promise<RoadmapItem> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ROADMAP_CREATE, params)
+    },
+    update: (id: string, updates: Partial<RoadmapItem>): Promise<RoadmapItem | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ROADMAP_UPDATE, { id, updates })
+    },
+    delete: (id: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ROADMAP_DELETE, id)
+    },
+    move: (id: string, lane: RoadmapLane): Promise<RoadmapItem | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ROADMAP_MOVE, { id, lane })
+    }
+  },
+
+  // Task Queue
+  taskQueue: {
+    list: (projectId: string): Promise<QueuedTask[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_LIST, projectId)
+    },
+    get: (id: string): Promise<QueuedTask | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_GET, id)
+    },
+    enqueue: (params: {
+      projectId: string
+      roadmapItemId?: string
+      parentTaskId?: string
+      title: string
+      description?: string
+      taskType: TaskType
+      autonomyLevel?: AutonomyLevel
+      agentType?: AgentType
+      priority?: number
+    }): Promise<QueuedTask> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_ENQUEUE, params)
+    },
+    update: (id: string, updates: Partial<QueuedTask>): Promise<QueuedTask | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_UPDATE, { id, updates })
+    },
+    cancel: (id: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_CANCEL, id)
+    },
+    start: (projectId: string, projectPath: string): Promise<void> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_START, { projectId, projectPath })
+    },
+    pause: (): Promise<void> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_PAUSE)
+    },
+    resume: (): Promise<void> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_RESUME)
+    },
+    approve: (gateId: string, approvedBy: string, notes?: string): Promise<ApprovalGate | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_APPROVE, { gateId, approvedBy, notes })
+    },
+    reject: (gateId: string, rejectedBy: string, notes?: string): Promise<ApprovalGate | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_REJECT, { gateId, rejectedBy, notes })
+    },
+    updateAutonomy: (id: string, level: AutonomyLevel): Promise<QueuedTask | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TASK_QUEUE_UPDATE, { id, updates: { autonomyLevel: level } })
+    },
+    getApprovals: (taskId: string): Promise<ApprovalGate[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.APPROVAL_LIST, taskId)
+    },
+    onEvent: (callback: (event: TaskQueueEvent) => void): (() => void) => {
+      const handler = (_event: IpcRendererEvent, data: TaskQueueEvent): void => {
+        callback(data)
+      }
+      ipcRenderer.on(IPC_CHANNELS.TASK_QUEUE_EVENT, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.TASK_QUEUE_EVENT, handler)
+      }
+    }
+  },
+
+  // Tech Advisor
+  techAdvisor: {
+    analyze: (params: {
+      projectId: string
+      taskId?: string
+      category: TechCategory
+      question: string
+      context?: string
+      projectPath: string
+    }): Promise<TechChoice> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TECH_ADVISOR_ANALYZE, params)
+    },
+    listChoices: (projectId: string): Promise<TechChoice[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TECH_ADVISOR_LIST_CHOICES, projectId)
+    },
+    getChoice: (id: string): Promise<TechChoice | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TECH_ADVISOR_GET_CHOICE, id)
+    },
+    decide: (id: string, selectedOption: string, rationale?: string): Promise<TechChoice | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.TECH_ADVISOR_DECIDE, { id, selectedOption, rationale })
+    }
+  },
+
+  // Task Decomposer
+  decomposer: {
+    decompose: (params: {
+      projectId: string
+      title: string
+      description: string
+      context?: string
+      projectPath: string
+      autonomyLevel?: AutonomyLevel
+      enqueueImmediately?: boolean
+    }): Promise<{
+      parentTask: QueuedTask | null
+      subtasks: Array<{
+        title: string
+        description: string
+        taskType: TaskType
+        agentType: AgentType
+        estimatedDuration: number
+        dependencies: number[]
+        priority: number
+      }>
+      enqueuedTasks: QueuedTask[]
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.DECOMPOSER_DECOMPOSE, params)
     }
   }
 }

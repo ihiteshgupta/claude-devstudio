@@ -63,11 +63,25 @@ export function useKeyboardShortcuts(): void {
           key: '5',
           ctrl: !isMac,
           meta: isMac,
+          action: () => currentProject && setViewMode('roadmap'),
+          description: 'Go to Roadmap'
+        },
+        {
+          key: '6',
+          ctrl: !isMac,
+          meta: isMac,
+          action: () => currentProject && setViewMode('task-queue'),
+          description: 'Go to Task Queue'
+        },
+        {
+          key: '7',
+          ctrl: !isMac,
+          meta: isMac,
           action: () => currentProject && setViewMode('git'),
           description: 'Go to Git'
         },
         {
-          key: '6',
+          key: '8',
           ctrl: !isMac,
           meta: isMac,
           action: () => currentProject && setViewMode('workflows'),
@@ -128,8 +142,10 @@ export const KEYBOARD_SHORTCUTS = [
   { keys: isMac ? '⌘2' : 'Ctrl+2', description: 'Chat' },
   { keys: isMac ? '⌘3' : 'Ctrl+3', description: 'Stories' },
   { keys: isMac ? '⌘4' : 'Ctrl+4', description: 'Sprints' },
-  { keys: isMac ? '⌘5' : 'Ctrl+5', description: 'Git' },
-  { keys: isMac ? '⌘6' : 'Ctrl+6', description: 'Workflows' },
+  { keys: isMac ? '⌘5' : 'Ctrl+5', description: 'Roadmap' },
+  { keys: isMac ? '⌘6' : 'Ctrl+6', description: 'Task Queue' },
+  { keys: isMac ? '⌘7' : 'Ctrl+7', description: 'Git' },
+  { keys: isMac ? '⌘8' : 'Ctrl+8', description: 'Workflows' },
   { keys: 'Esc', description: 'Close modal' },
   { keys: 'Enter', description: 'Send message (in chat)' },
   { keys: 'Shift+Enter', description: 'New line (in chat)' }
