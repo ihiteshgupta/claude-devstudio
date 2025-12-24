@@ -1,12 +1,15 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAppStore } from '../stores/appStore'
 import { useToast } from './Toast'
+import { ApprovalDialog } from './ApprovalDialog'
+import { TechChoiceModal } from './TechChoiceModal'
 import type {
   QueuedTask,
   TaskType,
   AutonomyLevel,
   TaskStatus,
-  ApprovalGate
+  ApprovalGate,
+  TechChoice
 } from '@shared/types'
 
 interface TaskQueuePanelProps {
@@ -85,6 +88,17 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [executionLog, setExecutionLog] = useState<string[]>([])
 
+  // New state for enhanced features
+  const [selectedApprovalGate, setSelectedApprovalGate] = useState<ApprovalGate | null>(null)
+  const [pendingTechChoices, setPendingTechChoices] = useState<TechChoice[]>([])
+  const [selectedTechChoice, setSelectedTechChoice] = useState<TechChoice | null>(null)
+  const [showDecomposeForm, setShowDecomposeForm] = useState(false)
+  const [isDecomposing, setIsDecomposing] = useState(false)
+  const [liveOutput, setLiveOutput] = useState<string>('')
+  const [decomposeTitle, setDecomposeTitle] = useState('')
+  const [decomposeDescription, setDecomposeDescription] = useState('')
+  const liveOutputRef = useRef<HTMLDivElement>(null)
+
   // Form state
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
@@ -108,6 +122,15 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
         }
       }
       setPendingApprovals(approvals)
+
+      // Load pending tech choices
+      try {
+        const techChoices = await window.electronAPI.techAdvisor.listChoices(currentProject.id)
+        // Filter to only pending ones
+        setPendingTechChoices(techChoices.filter((c: TechChoice) => c.status === 'pending'))
+      } catch {
+        // Tech advisor might not have pending choices
+      }
     } catch (error) {
       console.error('Failed to load tasks:', error)
       toast.error('Load Failed', 'Could not load task queue')
@@ -128,6 +151,22 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
         ...prev.slice(0, 99)
       ])
 
+      // Handle live output streaming
+      if (event.type === 'task-progress' && event.data) {
+        const data = event.data as { output?: string }
+        if (data.output) {
+          setLiveOutput(data.output)
+          // Auto-scroll
+          if (liveOutputRef.current) {
+            liveOutputRef.current.scrollTop = liveOutputRef.current.scrollHeight
+          }
+        }
+      }
+
+      if (event.type === 'task-started') {
+        setLiveOutput('')
+      }
+
       if (
         event.type === 'task-completed' ||
         event.type === 'task-failed' ||
@@ -135,6 +174,9 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
         event.type === 'task-approval-required'
       ) {
         loadTasks()
+        if (event.type === 'task-completed' || event.type === 'task-failed') {
+          setLiveOutput('')
+        }
       }
 
       if (event.type === 'queue-paused' || event.type === 'queue-resumed') {
@@ -251,6 +293,98 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
     }
   }
 
+  // Decompose a high-level task
+  const handleDecompose = async (): Promise<void> => {
+    if (!currentProject || !decomposeTitle.trim()) return
+
+    setIsDecomposing(true)
+    try {
+      const result = await window.electronAPI.decomposer.decompose({
+        projectId: currentProject.id,
+        title: decomposeTitle,
+        description: decomposeDescription,
+        projectPath,
+        autonomyLevel: newAutonomy,
+        enqueueImmediately: true
+      })
+
+      toast.success(
+        'Task Decomposed',
+        `Created ${result.enqueuedTasks.length} subtasks`
+      )
+
+      setDecomposeTitle('')
+      setDecomposeDescription('')
+      setShowDecomposeForm(false)
+      loadTasks()
+    } catch (error) {
+      console.error('Failed to decompose task:', error)
+      toast.error('Decomposition Failed', 'Could not break down the task')
+    } finally {
+      setIsDecomposing(false)
+    }
+  }
+
+  // Handle tech choice decision
+  const handleTechDecision = async (selectedOption: string, rationale: string): Promise<void> => {
+    if (!selectedTechChoice) return
+
+    try {
+      await window.electronAPI.techAdvisor.decide(
+        selectedTechChoice.id,
+        selectedOption,
+        rationale || undefined
+      )
+
+      toast.success('Decision Made', `Selected: ${selectedOption}`)
+      setSelectedTechChoice(null)
+      loadTasks()
+    } catch (error) {
+      console.error('Failed to make tech decision:', error)
+      toast.error('Decision Failed', 'Could not save tech decision')
+    }
+  }
+
+  // Cancel tech choice (just close the modal)
+  const handleCancelTechChoice = (): void => {
+    setSelectedTechChoice(null)
+  }
+
+  // Open approval dialog
+  const handleOpenApproval = (gate: ApprovalGate): void => {
+    setSelectedApprovalGate(gate)
+  }
+
+  // Handle approval from dialog
+  const handleApproveFromDialog = async (notes?: string): Promise<void> => {
+    if (!selectedApprovalGate) return
+
+    try {
+      await window.electronAPI.taskQueue.approve(selectedApprovalGate.id, 'user', notes)
+      setSelectedApprovalGate(null)
+      loadTasks()
+      toast.success('Approved', 'Task approved successfully')
+    } catch (error) {
+      console.error('Failed to approve:', error)
+      toast.error('Approve Failed', 'Could not approve task')
+    }
+  }
+
+  // Handle rejection from dialog
+  const handleRejectFromDialog = async (reason: string): Promise<void> => {
+    if (!selectedApprovalGate) return
+
+    try {
+      await window.electronAPI.taskQueue.reject(selectedApprovalGate.id, 'user', reason)
+      setSelectedApprovalGate(null)
+      loadTasks()
+      toast.success('Rejected', 'Task rejected')
+    } catch (error) {
+      console.error('Failed to reject:', error)
+      toast.error('Reject Failed', 'Could not reject task')
+    }
+  }
+
   // Group tasks
   const pendingTasks = tasks.filter((t) => ['pending', 'queued'].includes(t.status))
   const runningTasks = tasks.filter((t) => t.status === 'running')
@@ -355,6 +489,13 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
             )}
 
             <button
+              onClick={() => setShowDecomposeForm(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium py-1.5 px-4 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <i className="fas fa-project-diagram text-xs" />
+              Decompose
+            </button>
+            <button
               onClick={() => setShowCreateForm(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-1.5 px-4 rounded-lg transition-colors flex items-center gap-2"
             >
@@ -372,6 +513,37 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
             </div>
           ) : (
             <>
+              {/* Pending Tech Choices */}
+              {pendingTechChoices.length > 0 && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-amber-400 mb-3 flex items-center gap-2">
+                    <i className="fas fa-lightbulb" />
+                    Technology Decisions Required ({pendingTechChoices.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {pendingTechChoices.map((choice) => (
+                      <div
+                        key={choice.id}
+                        className="bg-zinc-900 rounded-lg p-3 cursor-pointer hover:bg-zinc-800/70 transition-colors"
+                        onClick={() => setSelectedTechChoice(choice)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium text-white">{choice.question}</h4>
+                            <p className="text-xs text-zinc-500 mt-1">
+                              {choice.options.length} options available
+                            </p>
+                          </div>
+                          <button className="bg-amber-600 hover:bg-amber-700 text-white text-sm py-1.5 px-3 rounded-lg transition-colors">
+                            Decide
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Pending Approvals */}
               {pendingApprovals.length > 0 && (
                 <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
@@ -383,7 +555,11 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
                     {pendingApprovals.map((gate) => {
                       const task = tasks.find((t) => t.id === gate.taskId)
                       return (
-                        <div key={gate.id} className="bg-zinc-900 rounded-lg p-3">
+                        <div
+                          key={gate.id}
+                          className="bg-zinc-900 rounded-lg p-3 cursor-pointer hover:bg-zinc-800/70 transition-colors"
+                          onClick={() => handleOpenApproval(gate)}
+                        >
                           <div className="flex items-center justify-between">
                             <div>
                               <h4 className="font-medium text-white">{gate.title}</h4>
@@ -398,13 +574,19 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
                             </div>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => handleRejectGate(gate.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRejectGate(gate.id)
+                                }}
                                 className="bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm py-1.5 px-3 rounded-lg transition-colors"
                               >
                                 Reject
                               </button>
                               <button
-                                onClick={() => handleApproveGate(gate.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleApproveGate(gate.id)
+                                }}
                                 className="bg-green-600 hover:bg-green-700 text-white text-sm py-1.5 px-3 rounded-lg transition-colors"
                               >
                                 Approve
@@ -413,12 +595,28 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
                           </div>
                           {gate.reviewData && (
                             <pre className="mt-3 p-2 bg-zinc-800 rounded text-xs text-zinc-300 max-h-32 overflow-auto">
-                              {gate.reviewData}
+                              {gate.reviewData.length > 200 ? gate.reviewData.slice(0, 200) + '...' : gate.reviewData}
                             </pre>
                           )}
                         </div>
                       )
                     })}
+                  </div>
+                </div>
+              )}
+
+              {/* Live Execution Output */}
+              {isQueueRunning && liveOutput && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-400 mb-3 flex items-center gap-2">
+                    <i className="fas fa-terminal animate-pulse" />
+                    Live Execution
+                  </h3>
+                  <div
+                    ref={liveOutputRef}
+                    className="bg-zinc-900 rounded-lg p-3 font-mono text-xs text-zinc-300 max-h-48 overflow-auto"
+                  >
+                    <pre className="whitespace-pre-wrap">{liveOutput}</pre>
                   </div>
                 </div>
               )}
@@ -704,6 +902,121 @@ export function TaskQueuePanel({ projectPath }: TaskQueuePanelProps): JSX.Elemen
             </div>
           </div>
         </div>
+      )}
+
+      {/* Decompose Form Modal */}
+      {showDecomposeForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-lg mx-4">
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center">
+                  <i className="fas fa-project-diagram text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">Decompose Task</h3>
+                  <p className="text-xs text-zinc-500">AI will break this into subtasks</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowDecomposeForm(false)}
+                className="p-1 hover:bg-zinc-800 rounded"
+              >
+                <i className="fas fa-times text-zinc-400" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">High-Level Task Title *</label>
+                <input
+                  type="text"
+                  value={decomposeTitle}
+                  onChange={(e) => setDecomposeTitle(e.target.value)}
+                  placeholder="e.g., Implement user authentication system"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">Description & Requirements</label>
+                <textarea
+                  value={decomposeDescription}
+                  onChange={(e) => setDecomposeDescription(e.target.value)}
+                  placeholder="Describe what needs to be done, any constraints, and expected outcomes..."
+                  rows={4}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">Subtask Autonomy Level</label>
+                <select
+                  value={newAutonomy}
+                  onChange={(e) => setNewAutonomy(e.target.value as AutonomyLevel)}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white"
+                >
+                  <option value="auto">Automatic - Run without stops</option>
+                  <option value="approval_gates">Approval Gates - Pause at checkpoints</option>
+                  <option value="supervised">Supervised - Approve each step</option>
+                </select>
+              </div>
+              <div className="bg-zinc-800/50 rounded-lg p-3 text-xs text-zinc-400">
+                <p className="flex items-center gap-2">
+                  <i className="fas fa-info-circle text-blue-400" />
+                  AI will analyze your task and create 3-8 subtasks with:
+                </p>
+                <ul className="mt-2 ml-6 space-y-1 list-disc">
+                  <li>Appropriate agent assignments (developer, tester, etc.)</li>
+                  <li>Duration estimates</li>
+                  <li>Dependency ordering</li>
+                </ul>
+              </div>
+            </div>
+            <div className="p-4 border-t border-zinc-800 flex justify-end gap-2">
+              <button
+                onClick={() => setShowDecomposeForm(false)}
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDecompose}
+                disabled={!decomposeTitle.trim() || isDecomposing}
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+              >
+                {isDecomposing ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-magic" />
+                    Decompose & Queue
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approval Dialog */}
+      {selectedApprovalGate && (
+        <ApprovalDialog
+          gate={selectedApprovalGate}
+          task={tasks.find(t => t.id === selectedApprovalGate.taskId)}
+          onApprove={handleApproveFromDialog}
+          onReject={handleRejectFromDialog}
+          onClose={() => setSelectedApprovalGate(null)}
+        />
+      )}
+
+      {/* Tech Choice Modal */}
+      {selectedTechChoice && (
+        <TechChoiceModal
+          choice={selectedTechChoice}
+          onDecide={handleTechDecision}
+          onCancel={handleCancelTechChoice}
+        />
       )}
     </div>
   )
