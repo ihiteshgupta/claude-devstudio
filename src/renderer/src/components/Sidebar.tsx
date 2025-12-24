@@ -81,13 +81,13 @@ export function Sidebar(): JSX.Element {
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col">
       {/* Projects Section */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-foreground">Projects</h2>
+      <div className="p-3 border-b border-border">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projects</h2>
           <button
             onClick={handleSelectFolder}
             disabled={isAddingProject}
-            className="p-1 hover:bg-secondary rounded transition-colors disabled:opacity-50"
+            className="p-1 hover:bg-secondary/50 rounded transition-colors disabled:opacity-50 text-muted-foreground hover:text-foreground"
             title="Add project"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,23 +129,24 @@ export function Sidebar(): JSX.Element {
         </div>
       </div>
 
-      {/* View Mode Tabs */}
-      <div className="p-4 border-b border-border">
-        <h2 className="text-sm font-semibold text-foreground mb-3">View</h2>
-        <div className="flex gap-1 bg-secondary/50 p-1 rounded-lg">
+      {/* View Mode Tabs - Grid Layout */}
+      <div className="p-3 border-b border-border">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">View</h2>
+        <div className="grid grid-cols-3 gap-1">
           {VIEW_TABS.map((tab) => (
             <button
               key={tab.mode}
               onClick={() => setViewMode(tab.mode)}
               disabled={!currentProject}
-              className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                 viewMode === tab.mode && currentProject
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-secondary'
+                  ? 'bg-primary/20 text-primary'
+                  : 'hover:bg-secondary/50 text-muted-foreground hover:text-foreground'
               }`}
+              title={tab.name}
             >
-              <span>{tab.icon}</span>
-              <span>{tab.name}</span>
+              <span className="text-base">{tab.icon}</span>
+              <span className="text-[10px] font-medium">{tab.name}</span>
             </button>
           ))}
         </div>
@@ -153,36 +154,32 @@ export function Sidebar(): JSX.Element {
 
       {/* Dashboard info - Only show in dashboard mode */}
       {viewMode === 'dashboard' && (
-        <div className="flex-1 p-4 overflow-y-auto">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Project Overview</h2>
-          <div className="text-xs text-muted-foreground space-y-2">
-            <p>View project metrics, sprint progress, and story statistics at a glance.</p>
-            <p className="text-purple-400">Quick access to all your project data.</p>
+        <div className="flex-1 p-3 overflow-y-auto">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Overview</h2>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>Project metrics, sprint progress, and statistics.</p>
           </div>
         </div>
       )}
 
       {/* Agents Section - Only show in chat mode */}
       {viewMode === 'chat' && (
-        <div className="flex-1 p-4 overflow-y-auto">
-          <h2 className="text-sm font-semibold text-foreground mb-3">AI Agents</h2>
-          <div className="space-y-1">
+        <div className="flex-1 p-3 overflow-y-auto">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">AI Agents</h2>
+          <div className="space-y-0.5">
             {AGENTS.map((agent) => (
               <button
                 key={agent.type}
                 onClick={() => handleAgentChange(agent.type)}
                 disabled={!currentProject}
-                className={`w-full flex items-center gap-3 p-2 rounded-md text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                   currentAgentType === agent.type && currentProject
                     ? 'bg-primary/20 text-primary'
-                    : 'hover:bg-secondary'
+                    : 'hover:bg-secondary/50'
                 }`}
               >
-                <span className="text-lg">{agent.icon}</span>
-                <div className="min-w-0">
-                  <div className="text-sm font-medium">{agent.name}</div>
-                  <div className="text-xs text-muted-foreground truncate">{agent.description}</div>
-                </div>
+                <span className="text-sm">{agent.icon}</span>
+                <span className="text-sm font-medium truncate">{agent.name}</span>
               </button>
             ))}
           </div>
@@ -191,77 +188,52 @@ export function Sidebar(): JSX.Element {
 
       {/* Workflow Templates - Only show in workflows mode */}
       {viewMode === 'workflows' && (
-        <div className="flex-1 p-4 overflow-y-auto">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Workflow Templates</h2>
-          <div className="space-y-2">
-            <div className="p-3 bg-secondary/30 rounded-lg">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-purple-400">📋</span>
-                <span className="text-sm font-medium">Story to Tests</span>
+        <div className="flex-1 p-3 overflow-y-auto">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Templates</h2>
+          <div className="space-y-1">
+            {[
+              { icon: '📋', name: 'Story → Tests', color: 'text-purple-400' },
+              { icon: '🔧', name: 'Story → Code', color: 'text-blue-400' },
+              { icon: '🔒', name: 'Review + Security', color: 'text-red-400' },
+              { icon: '🚀', name: 'Full Pipeline', color: 'text-green-400' }
+            ].map((template) => (
+              <div key={template.name} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-secondary/50 cursor-pointer">
+                <span className={template.color}>{template.icon}</span>
+                <span className="text-sm">{template.name}</span>
               </div>
-              <p className="text-xs text-muted-foreground">Generate test cases from user stories</p>
-            </div>
-            <div className="p-3 bg-secondary/30 rounded-lg">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-blue-400">🔧</span>
-                <span className="text-sm font-medium">Story to Code</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Tech spec and implementation</p>
-            </div>
-            <div className="p-3 bg-secondary/30 rounded-lg">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-red-400">🔒</span>
-                <span className="text-sm font-medium">Review + Security</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Code review and security audit</p>
-            </div>
-            <div className="p-3 bg-secondary/30 rounded-lg">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-green-400">🚀</span>
-                <span className="text-sm font-medium">Full Pipeline</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Complete feature development</p>
-            </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* Stories info - Only show in stories mode */}
       {viewMode === 'stories' && (
-        <div className="flex-1 p-4 overflow-y-auto">
-          <h2 className="text-sm font-semibold text-foreground mb-3">User Stories</h2>
-          <div className="text-xs text-muted-foreground">
-            Create and manage user stories for your project. Generate test cases automatically.
-          </div>
+        <div className="flex-1 p-3 overflow-y-auto">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Stories</h2>
+          <p className="text-xs text-muted-foreground">Create and manage user stories.</p>
         </div>
       )}
 
       {/* Sprints info - Only show in sprints mode */}
       {viewMode === 'sprints' && (
-        <div className="flex-1 p-4 overflow-y-auto">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Sprint Board</h2>
-          <div className="text-xs text-muted-foreground space-y-2">
-            <p>Manage sprints and track story progress with the Kanban board.</p>
-            <p className="text-purple-400">Drag and drop stories between columns to update their status.</p>
-          </div>
+        <div className="flex-1 p-3 overflow-y-auto">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sprints</h2>
+          <p className="text-xs text-muted-foreground">Kanban board for sprint management.</p>
         </div>
       )}
 
       {/* Git info - Only show in git mode */}
       {viewMode === 'git' && (
-        <div className="flex-1 p-4 overflow-y-auto">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Version Control</h2>
-          <div className="text-xs text-muted-foreground space-y-2">
-            <p>View repository status, stage changes, and commit.</p>
-            <p>Browse commit history and manage branches.</p>
-          </div>
+        <div className="flex-1 p-3 overflow-y-auto">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Git</h2>
+          <p className="text-xs text-muted-foreground">Repository status and commits.</p>
         </div>
       )}
 
       {/* Current project path */}
       {currentProject && (
-        <div className="p-4 border-t border-border">
-          <div className="text-xs text-muted-foreground truncate" title={currentProject.path}>
+        <div className="p-2 border-t border-border">
+          <div className="text-[10px] text-muted-foreground/60 truncate" title={currentProject.path}>
             {currentProject.path}
           </div>
         </div>
