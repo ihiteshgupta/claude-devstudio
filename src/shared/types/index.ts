@@ -243,6 +243,22 @@ export interface TestCase {
   updatedAt: Date
 }
 
+// Test Execution (for tracking actual test runs)
+export interface TestExecution {
+  id: string
+  projectId: string
+  taskId?: string
+  testCaseId?: string
+  testName: string
+  testPath?: string
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'skipped'
+  duration: number
+  executedAt: Date
+  errorMessage?: string
+  stackTrace?: string
+  gitCommit?: string
+}
+
 // Workflows (Multi-Agent Pipelines)
 export interface Workflow {
   id: string
@@ -694,6 +710,53 @@ export const IPC_CHANNELS = {
   DEPLOY_LIST: 'deploy:list',
   DEPLOY_CURRENT: 'deploy:current',
   DEPLOY_EVENT: 'deploy:event',
+
+  // Sprint Planner
+  SPRINT_PLANNER_GENERATE: 'sprint-planner:generate',
+  SPRINT_PLANNER_ACTIVE: 'sprint-planner:active',
+  SPRINT_PLANNER_PROGRESS: 'sprint-planner:progress',
+  SPRINT_PLANNER_STORIES: 'sprint-planner:stories',
+  SPRINT_PLANNER_CHECK_COMPLETION: 'sprint-planner:check-completion',
+  SPRINT_PLANNER_MONITOR: 'sprint-planner:monitor',
+  SPRINT_PLANNER_SYNC_STATUS: 'sprint-planner:sync-status',
+  SPRINT_PLANNER_EVENT: 'sprint-planner:event',
+
+  // Bug Reports
+  BUG_CREATE: 'bug:create',
+  BUG_GET: 'bug:get',
+  BUG_LIST: 'bug:list',
+  BUG_UPDATE_STATUS: 'bug:update-status',
+  BUG_UPDATE_SEVERITY: 'bug:update-severity',
+  BUG_ADD_LABEL: 'bug:add-label',
+  BUG_REMOVE_LABEL: 'bug:remove-label',
+  BUG_DELETE: 'bug:delete',
+  BUG_STATS: 'bug:stats',
+  BUG_FROM_TEST: 'bug:from-test',
+  BUG_FROM_TEST_RUN: 'bug:from-test-run',
+  BUG_AUTO_RESOLVE: 'bug:auto-resolve',
+  BUG_EVENT: 'bug:event',
+
+  // Validation
+  VALIDATION_RUN: 'validation:run',
+  VALIDATION_RUN_PROFILE: 'validation:run-profile',
+  VALIDATION_CANCEL: 'validation:cancel',
+  VALIDATION_PROFILES: 'validation:profiles',
+  VALIDATION_DETECT_CHECKS: 'validation:detect-checks',
+  VALIDATION_RECENT: 'validation:recent',
+  VALIDATION_GET: 'validation:get',
+  VALIDATION_TASK_RUNS: 'validation:task-runs',
+  VALIDATION_QUICK: 'validation:quick',
+  VALIDATION_EVENT: 'validation:event',
+
+  // Security Scanner
+  SECURITY_SCAN: 'security:scan',
+  SECURITY_CANCEL: 'security:cancel',
+  SECURITY_FINDINGS: 'security:findings',
+  SECURITY_FINDING_GET: 'security:finding-get',
+  SECURITY_FINDING_UPDATE: 'security:finding-update',
+  SECURITY_SCANS: 'security:scans',
+  SECURITY_SUMMARY: 'security:summary',
+  SECURITY_EVENT: 'security:event',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

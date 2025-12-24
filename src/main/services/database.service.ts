@@ -382,6 +382,100 @@ class DatabaseService {
       )
     `)
 
+    // Bugs table (for auto-generated bug reports)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS bugs (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        severity TEXT NOT NULL DEFAULT 'medium',
+        status TEXT NOT NULL DEFAULT 'open',
+        source TEXT NOT NULL,
+        source_id TEXT,
+        file_path TEXT,
+        line_number INTEGER,
+        error_message TEXT,
+        stack_trace TEXT,
+        steps_to_reproduce TEXT,
+        expected_behavior TEXT,
+        actual_behavior TEXT,
+        assigned_to TEXT,
+        labels TEXT,
+        related_bugs TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        resolved_at TEXT
+      )
+    `)
+
+    // Security scans table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS security_scans (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        types TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'running',
+        findings_count_json TEXT,
+        total_findings INTEGER DEFAULT 0,
+        duration INTEGER DEFAULT 0,
+        started_at TEXT NOT NULL,
+        completed_at TEXT,
+        error TEXT
+      )
+    `)
+
+    // Security findings table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS security_findings (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        scan_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        file_path TEXT,
+        line_number INTEGER,
+        code_snippet TEXT,
+        cwe TEXT,
+        cve TEXT,
+        package_name TEXT,
+        package_version TEXT,
+        fixed_version TEXT,
+        recommendation TEXT,
+        status TEXT NOT NULL DEFAULT 'open',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (scan_id) REFERENCES security_scans(id) ON DELETE CASCADE
+      )
+    `)
+
+    // Validation runs table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS validation_runs (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        task_id TEXT,
+        overall_status TEXT NOT NULL,
+        passed_count INTEGER DEFAULT 0,
+        failed_count INTEGER DEFAULT 0,
+        skipped_count INTEGER DEFAULT 0,
+        total_duration INTEGER DEFAULT 0,
+        checks_json TEXT,
+        started_at TEXT NOT NULL,
+        completed_at TEXT,
+        FOREIGN KEY (task_id) REFERENCES task_queue(id) ON DELETE SET NULL
+      )
+    `)
+
+    // Add sprint_id to roadmap_items if not exists
+    try {
+      this.db.exec(`ALTER TABLE roadmap_items ADD COLUMN sprint_id TEXT REFERENCES sprints(id) ON DELETE SET NULL`)
+    } catch {
+      // Column already exists, ignore
+    }
+
     // Create indexes
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_sessions_project ON chat_sessions(project_id);
@@ -416,6 +510,20 @@ class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_deployments_project ON deployments(project_id);
       CREATE INDEX IF NOT EXISTS idx_deployments_env ON deployments(environment);
       CREATE INDEX IF NOT EXISTS idx_deployments_status ON deployments(status);
+      CREATE INDEX IF NOT EXISTS idx_bugs_project ON bugs(project_id);
+      CREATE INDEX IF NOT EXISTS idx_bugs_status ON bugs(status);
+      CREATE INDEX IF NOT EXISTS idx_bugs_severity ON bugs(severity);
+      CREATE INDEX IF NOT EXISTS idx_bugs_source ON bugs(source);
+      CREATE INDEX IF NOT EXISTS idx_security_scans_project ON security_scans(project_id);
+      CREATE INDEX IF NOT EXISTS idx_security_scans_status ON security_scans(status);
+      CREATE INDEX IF NOT EXISTS idx_security_findings_project ON security_findings(project_id);
+      CREATE INDEX IF NOT EXISTS idx_security_findings_scan ON security_findings(scan_id);
+      CREATE INDEX IF NOT EXISTS idx_security_findings_severity ON security_findings(severity);
+      CREATE INDEX IF NOT EXISTS idx_security_findings_status ON security_findings(status);
+      CREATE INDEX IF NOT EXISTS idx_validation_runs_project ON validation_runs(project_id);
+      CREATE INDEX IF NOT EXISTS idx_validation_runs_task ON validation_runs(task_id);
+      CREATE INDEX IF NOT EXISTS idx_validation_runs_status ON validation_runs(overall_status);
+      CREATE INDEX IF NOT EXISTS idx_roadmap_sprint ON roadmap_items(sprint_id);
     `)
   }
 

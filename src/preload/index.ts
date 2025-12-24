@@ -689,6 +689,261 @@ const api = {
         ipcRenderer.removeListener(IPC_CHANNELS.DEPLOY_EVENT, handler)
       }
     }
+  },
+
+  // Sprint Planner
+  sprintPlanner: {
+    generate: (config: {
+      projectId: string
+      projectPath: string
+      capacity: number
+      durationDays: number
+      defaultAutonomyLevel?: AutonomyLevel
+      autoDecompose?: boolean
+      autoEnqueue?: boolean
+    }): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_PLANNER_GENERATE, config)
+    },
+    getActive: (projectId: string): Promise<Sprint | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_PLANNER_ACTIVE, projectId)
+    },
+    getProgress: (sprintId: string): Promise<{
+      sprintId: string
+      totalStories: number
+      completedStories: number
+      inProgressStories: number
+      blockedStories: number
+      totalPoints: number
+      completedPoints: number
+      percentComplete: number
+      estimatedCompletion: Date | null
+      velocity: number
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_PLANNER_PROGRESS, sprintId)
+    },
+    getStories: (sprintId: string): Promise<UserStory[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_PLANNER_STORIES, sprintId)
+    },
+    checkCompletion: (projectId: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_PLANNER_CHECK_COMPLETION, projectId)
+    },
+    monitor: (config: {
+      projectId: string
+      projectPath: string
+      capacity: number
+      durationDays: number
+      defaultAutonomyLevel?: AutonomyLevel
+      autoDecompose?: boolean
+      autoEnqueue?: boolean
+    }): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_PLANNER_MONITOR, config)
+    },
+    syncStatus: (projectId: string): Promise<number> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SPRINT_PLANNER_SYNC_STATUS, projectId)
+    },
+    onEvent: (callback: (event: { type: string; data: unknown }) => void): (() => void) => {
+      const handler = (_event: IpcRendererEvent, data: Parameters<typeof callback>[0]): void => {
+        callback(data)
+      }
+      ipcRenderer.on(IPC_CHANNELS.SPRINT_PLANNER_EVENT, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.SPRINT_PLANNER_EVENT, handler)
+      }
+    }
+  },
+
+  // Bug Reports
+  bugs: {
+    create: (input: {
+      projectId: string
+      title: string
+      description: string
+      severity: 'critical' | 'high' | 'medium' | 'low'
+      source: 'test_failure' | 'security_scan' | 'manual' | 'ai_detected'
+      sourceId?: string
+      filePath?: string
+      lineNumber?: number
+      errorMessage?: string
+      stackTrace?: string
+      stepsToReproduce?: string
+      expectedBehavior?: string
+      actualBehavior?: string
+      labels?: string[]
+    }): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_CREATE, input)
+    },
+    get: (id: string): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_GET, id)
+    },
+    list: (projectId: string, options?: {
+      status?: ('open' | 'in_progress' | 'resolved' | 'closed' | 'wont_fix')[]
+      severity?: ('critical' | 'high' | 'medium' | 'low')[]
+      source?: ('test_failure' | 'security_scan' | 'manual' | 'ai_detected')[]
+      limit?: number
+      offset?: number
+    }): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_LIST, { projectId, options })
+    },
+    updateStatus: (id: string, status: 'open' | 'in_progress' | 'resolved' | 'closed' | 'wont_fix'): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_UPDATE_STATUS, { id, status })
+    },
+    updateSeverity: (id: string, severity: 'critical' | 'high' | 'medium' | 'low'): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_UPDATE_SEVERITY, { id, severity })
+    },
+    addLabel: (id: string, label: string): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_ADD_LABEL, { id, label })
+    },
+    removeLabel: (id: string, label: string): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_REMOVE_LABEL, { id, label })
+    },
+    delete: (id: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_DELETE, id)
+    },
+    getStats: (projectId: string): Promise<{
+      total: number
+      open: number
+      inProgress: number
+      resolved: number
+      closed: number
+      bySeverity: Record<string, number>
+      bySource: Record<string, number>
+      avgResolutionTimeHours: number
+      openedLast7Days: number
+      resolvedLast7Days: number
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_STATS, projectId)
+    },
+    createFromTest: (projectId: string, execution: unknown, projectPath: string): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_FROM_TEST, { projectId, execution, projectPath })
+    },
+    createFromTestRun: (projectId: string, failures: unknown[], projectPath: string): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_FROM_TEST_RUN, { projectId, failures, projectPath })
+    },
+    autoResolve: (projectId: string, passedTestNames: string[]): Promise<number> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.BUG_AUTO_RESOLVE, { projectId, passedTestNames })
+    },
+    onEvent: (callback: (event: { type: string; data: unknown }) => void): (() => void) => {
+      const handler = (_event: IpcRendererEvent, data: Parameters<typeof callback>[0]): void => {
+        callback(data)
+      }
+      ipcRenderer.on(IPC_CHANNELS.BUG_EVENT, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.BUG_EVENT, handler)
+      }
+    }
+  },
+
+  // Validation
+  validation: {
+    run: (config: {
+      projectId: string
+      projectPath: string
+      taskId?: string
+      checks?: Array<{
+        type: 'typecheck' | 'lint' | 'build' | 'test' | 'format' | 'security' | 'custom'
+        name: string
+        command: string
+        required: boolean
+        timeout?: number
+      }>
+      stopOnFirstFailure?: boolean
+      timeout?: number
+    }): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.VALIDATION_RUN, config)
+    },
+    runWithProfile: (projectId: string, projectPath: string, profileId: string, taskId?: string): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.VALIDATION_RUN_PROFILE, { projectId, projectPath, profileId, taskId })
+    },
+    cancel: (runId: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.VALIDATION_CANCEL, runId)
+    },
+    getProfiles: (): Promise<Array<{
+      id: string
+      name: string
+      description: string
+      checks: Array<{ type: string; name: string; command: string; required: boolean }>
+    }>> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.VALIDATION_PROFILES)
+    },
+    detectChecks: (projectPath: string): Promise<Array<{
+      type: string
+      name: string
+      command: string
+      required: boolean
+    }>> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.VALIDATION_DETECT_CHECKS, projectPath)
+    },
+    getRecent: (projectId: string, limit?: number): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.VALIDATION_RECENT, { projectId, limit })
+    },
+    get: (runId: string): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.VALIDATION_GET, runId)
+    },
+    getTaskRuns: (taskId: string): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.VALIDATION_TASK_RUNS, taskId)
+    },
+    quick: (projectPath: string, projectId: string): Promise<{ passed: boolean; summary: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.VALIDATION_QUICK, { projectPath, projectId })
+    },
+    onEvent: (callback: (event: { type: string; data: unknown }) => void): (() => void) => {
+      const handler = (_event: IpcRendererEvent, data: Parameters<typeof callback>[0]): void => {
+        callback(data)
+      }
+      ipcRenderer.on(IPC_CHANNELS.VALIDATION_EVENT, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.VALIDATION_EVENT, handler)
+      }
+    }
+  },
+
+  // Security Scanner
+  security: {
+    scan: (config: {
+      projectId: string
+      projectPath: string
+      types?: ('dependency' | 'code' | 'secrets' | 'license' | 'sast')[]
+      createBugs?: boolean
+      minSeverityForBug?: 'critical' | 'high' | 'moderate' | 'low' | 'info'
+    }): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SECURITY_SCAN, config)
+    },
+    cancel: (scanId: string): Promise<boolean> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SECURITY_CANCEL, scanId)
+    },
+    getFindings: (projectId: string, options?: {
+      status?: ('open' | 'acknowledged' | 'fixed' | 'false_positive')[]
+      severity?: ('critical' | 'high' | 'moderate' | 'low' | 'info')[]
+      type?: ('dependency' | 'code' | 'secrets' | 'license' | 'sast')[]
+      limit?: number
+    }): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SECURITY_FINDINGS, { projectId, options })
+    },
+    getFinding: (id: string): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SECURITY_FINDING_GET, id)
+    },
+    updateFindingStatus: (id: string, status: 'open' | 'acknowledged' | 'fixed' | 'false_positive'): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SECURITY_FINDING_UPDATE, { id, status })
+    },
+    getScans: (projectId: string, limit?: number): Promise<unknown[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SECURITY_SCANS, { projectId, limit })
+    },
+    getSummary: (projectId: string): Promise<{
+      openFindings: Record<string, number>
+      lastScanDate: Date | null
+      totalScans: number
+      fixedLast30Days: number
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.SECURITY_SUMMARY, projectId)
+    },
+    onEvent: (callback: (event: { type: string; data: unknown }) => void): (() => void) => {
+      const handler = (_event: IpcRendererEvent, data: Parameters<typeof callback>[0]): void => {
+        callback(data)
+      }
+      ipcRenderer.on(IPC_CHANNELS.SECURITY_EVENT, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.SECURITY_EVENT, handler)
+      }
+    }
   }
 }
 

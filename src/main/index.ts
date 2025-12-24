@@ -15,6 +15,10 @@ import { autonomousExecutorService } from './services/autonomous-executor.servic
 import { testExecutionService } from './services/test-execution.service'
 import { gitAutomationService } from './services/git-automation.service'
 import { deploymentService } from './services/deployment.service'
+import { sprintPlannerService } from './services/sprint-planner.service'
+import { bugReportService } from './services/bug-report.service'
+import { validationService } from './services/validation.service'
+import { securityScannerService } from './services/security-scanner.service'
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -681,6 +685,189 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.DEPLOY_CURRENT, async (_, { projectId, environment }) => {
     return deploymentService.getCurrentDeployment(projectId, environment)
+  })
+
+  // ============ Sprint Planner Handlers ============
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_PLANNER_GENERATE, async (_, config) => {
+    // Forward events to renderer
+    const events = ['sprint-planning-started', 'sprint-created', 'story-decomposed',
+                    'decomposition-error', 'sprint-completed', 'sprint-generation-error']
+    events.forEach(event => {
+      sprintPlannerService.on(event, (data) => {
+        mainWindow?.webContents.send(IPC_CHANNELS.SPRINT_PLANNER_EVENT, { type: event, data })
+      })
+    })
+    return sprintPlannerService.generateNextSprint(config)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_PLANNER_ACTIVE, async (_, projectId) => {
+    return sprintPlannerService.getActiveSprint(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_PLANNER_PROGRESS, async (_, sprintId) => {
+    return sprintPlannerService.getSprintProgress(sprintId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_PLANNER_STORIES, async (_, sprintId) => {
+    return sprintPlannerService.getSprintStories(sprintId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_PLANNER_CHECK_COMPLETION, async (_, projectId) => {
+    return sprintPlannerService.checkSprintCompletion(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_PLANNER_MONITOR, async (_, config) => {
+    return sprintPlannerService.monitorAndContinue(config)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_PLANNER_SYNC_STATUS, async (_, projectId) => {
+    return sprintPlannerService.syncStoryStatusFromTasks(projectId)
+  })
+
+  // ============ Bug Report Handlers ============
+
+  ipcMain.handle(IPC_CHANNELS.BUG_CREATE, async (_, input) => {
+    return bugReportService.create(input)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_GET, async (_, id) => {
+    return bugReportService.getById(id)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_LIST, async (_, { projectId, options }) => {
+    return bugReportService.getBugs(projectId, options || {})
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_UPDATE_STATUS, async (_, { id, status }) => {
+    return bugReportService.updateStatus(id, status)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_UPDATE_SEVERITY, async (_, { id, severity }) => {
+    return bugReportService.updateSeverity(id, severity)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_ADD_LABEL, async (_, { id, label }) => {
+    return bugReportService.addLabel(id, label)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_REMOVE_LABEL, async (_, { id, label }) => {
+    return bugReportService.removeLabel(id, label)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_DELETE, async (_, id) => {
+    return bugReportService.delete(id)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_STATS, async (_, projectId) => {
+    return bugReportService.getStats(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_FROM_TEST, async (_, { projectId, execution, projectPath }) => {
+    // Forward events to renderer
+    bugReportService.on('bug-created', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.BUG_EVENT, { type: 'bug-created', data })
+    })
+    bugReportService.on('duplicate-detected', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.BUG_EVENT, { type: 'duplicate-detected', data })
+    })
+    return bugReportService.createFromTestFailure(projectId, execution, projectPath)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_FROM_TEST_RUN, async (_, { projectId, failures, projectPath }) => {
+    bugReportService.on('bugs-batch-created', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.BUG_EVENT, { type: 'bugs-batch-created', data })
+    })
+    return bugReportService.createFromTestRun(projectId, failures, projectPath)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BUG_AUTO_RESOLVE, async (_, { projectId, passedTestNames }) => {
+    bugReportService.on('bugs-auto-resolved', (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.BUG_EVENT, { type: 'bugs-auto-resolved', data })
+    })
+    return bugReportService.autoResolveFromTestSuccess(projectId, passedTestNames)
+  })
+
+  // ============ Validation Handlers ============
+
+  ipcMain.handle(IPC_CHANNELS.VALIDATION_RUN, async (_, config) => {
+    // Forward events to renderer
+    const events = ['validation-started', 'check-started', 'check-completed', 'validation-completed']
+    events.forEach(event => {
+      validationService.on(event, (data) => {
+        mainWindow?.webContents.send(IPC_CHANNELS.VALIDATION_EVENT, { type: event, data })
+      })
+    })
+    return validationService.validate(config)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.VALIDATION_RUN_PROFILE, async (_, { projectId, projectPath, profileId, taskId }) => {
+    return validationService.validateWithProfile(projectId, projectPath, profileId, taskId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.VALIDATION_CANCEL, async (_, runId) => {
+    return validationService.cancel(runId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.VALIDATION_PROFILES, async () => {
+    return validationService.getProfiles()
+  })
+
+  ipcMain.handle(IPC_CHANNELS.VALIDATION_DETECT_CHECKS, async (_, projectPath) => {
+    return validationService.detectChecks(projectPath)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.VALIDATION_RECENT, async (_, { projectId, limit }) => {
+    return validationService.getRecentRuns(projectId, limit || 10)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.VALIDATION_GET, async (_, runId) => {
+    return validationService.getRun(runId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.VALIDATION_TASK_RUNS, async (_, taskId) => {
+    return validationService.getTaskRuns(taskId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.VALIDATION_QUICK, async (_, { projectPath, projectId }) => {
+    return validationService.quickValidate(projectPath, projectId)
+  })
+
+  // ============ Security Scanner Handlers ============
+
+  ipcMain.handle(IPC_CHANNELS.SECURITY_SCAN, async (_, config) => {
+    // Forward events to renderer
+    const events = ['scan-started', 'scan-phase', 'scan-completed', 'bug-creation-error']
+    events.forEach(event => {
+      securityScannerService.on(event, (data) => {
+        mainWindow?.webContents.send(IPC_CHANNELS.SECURITY_EVENT, { type: event, data })
+      })
+    })
+    return securityScannerService.scan(config)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SECURITY_CANCEL, async (_, scanId) => {
+    return securityScannerService.cancel(scanId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SECURITY_FINDINGS, async (_, { projectId, options }) => {
+    return securityScannerService.getFindings(projectId, options || {})
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SECURITY_FINDING_GET, async (_, id) => {
+    return securityScannerService.getFinding(id)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SECURITY_FINDING_UPDATE, async (_, { id, status }) => {
+    return securityScannerService.updateFindingStatus(id, status)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SECURITY_SCANS, async (_, { projectId, limit }) => {
+    return securityScannerService.getRecentScans(projectId, limit || 10)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SECURITY_SUMMARY, async (_, projectId) => {
+    return securityScannerService.getSummary(projectId)
   })
 }
 
