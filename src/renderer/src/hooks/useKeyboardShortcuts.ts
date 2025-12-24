@@ -15,7 +15,7 @@ interface ShortcutConfig {
 const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
 
 export function useKeyboardShortcuts(): void {
-  const { currentProject, setViewMode, viewMode } = useAppStore()
+  const { currentProject, setViewMode, viewMode, setShowTutorial } = useAppStore()
 
   const handleShortcut = useCallback(
     (e: KeyboardEvent) => {
@@ -94,6 +94,13 @@ export function useKeyboardShortcuts(): void {
             // This will be handled by individual components
           },
           description: 'Close modal / Cancel'
+        },
+        // Help/Tutorial shortcut
+        {
+          key: '?',
+          shift: true,
+          action: () => setShowTutorial(true),
+          description: 'Open tutorial'
         }
       ]
 
@@ -127,7 +134,7 @@ export function useKeyboardShortcuts(): void {
         }
       }
     },
-    [currentProject, setViewMode]
+    [currentProject, setViewMode, setShowTutorial]
   )
 
   useEffect(() => {
@@ -148,5 +155,6 @@ export const KEYBOARD_SHORTCUTS = [
   { keys: isMac ? '⌘8' : 'Ctrl+8', description: 'Workflows' },
   { keys: 'Esc', description: 'Close modal' },
   { keys: 'Enter', description: 'Send message (in chat)' },
-  { keys: 'Shift+Enter', description: 'New line (in chat)' }
+  { keys: 'Shift+Enter', description: 'New line (in chat)' },
+  { keys: '?', description: 'Open tutorial' }
 ]

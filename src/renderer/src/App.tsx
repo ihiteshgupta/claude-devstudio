@@ -11,12 +11,13 @@ import { DashboardPanel } from './components/DashboardPanel'
 import { RoadmapPanel } from './components/RoadmapPanel'
 import { TaskQueuePanel } from './components/TaskQueuePanel'
 import { WelcomeScreen } from './components/WelcomeScreen'
+import { TutorialModal } from './components/TutorialModal'
 import { StatusBar } from './components/StatusBar'
 import { ToastProvider, useToast } from './components/Toast'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
 function AppContent(): JSX.Element {
-  const { claudeStatus, setClaudeStatus, currentProject, setProjects, isSidebarOpen, viewMode } =
+  const { claudeStatus, setClaudeStatus, currentProject, setProjects, isSidebarOpen, viewMode, showTutorial, setShowTutorial } =
     useAppStore()
   const toast = useToast()
 
@@ -90,6 +91,9 @@ function AppContent(): JSX.Element {
       </div>
 
       <StatusBar />
+
+      {/* Tutorial Modal */}
+      {showTutorial && <TutorialModal onClose={() => setShowTutorial(false)} />}
     </div>
   )
 }

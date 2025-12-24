@@ -51,6 +51,8 @@ interface AppState {
   toggleSidebar: () => void
   showSessionHistory: boolean
   setShowSessionHistory: (show: boolean) => void
+  showTutorial: boolean
+  setShowTutorial: (show: boolean) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -135,5 +137,7 @@ export const useAppStore = create<AppState>((set) => ({
   isSidebarOpen: true,
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   showSessionHistory: false,
-  setShowSessionHistory: (show) => set({ showSessionHistory: show })
+  setShowSessionHistory: (show) => set({ showSessionHistory: show }),
+  showTutorial: false,
+  setShowTutorial: (show) => set({ showTutorial: show })
 }))
