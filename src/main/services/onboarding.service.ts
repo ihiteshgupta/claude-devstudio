@@ -405,7 +405,14 @@ Respond in JSON format:
         errorOutput += data.toString();
       });
 
+      // Timeout after 60 seconds - store ID to clear on completion
+      const timeoutId = setTimeout(() => {
+        proc.kill('SIGKILL');
+        reject(new Error('Claude CLI timeout'));
+      }, 60000);
+
       proc.on('close', (code) => {
+        clearTimeout(timeoutId);
         if (code === 0) {
           resolve(output);
         } else {
@@ -414,14 +421,9 @@ Respond in JSON format:
       });
 
       proc.on('error', (err) => {
+        clearTimeout(timeoutId);
         reject(err);
       });
-
-      // Timeout after 60 seconds
-      setTimeout(() => {
-        proc.kill();
-        reject(new Error('Claude CLI timeout'));
-      }, 60000);
     });
   }
 
@@ -701,14 +703,14 @@ Please refine the plan based on this feedback. Respond in the same JSON format.`
     // Create accepted roadmap items
     for (const item of suggestedRoadmap.filter(r => r.accepted)) {
       try {
-        roadmapService.create({
+        roadmapService.createItem({
           projectId,
           type: item.type,
           title: item.title,
           description: item.description,
           priority: item.priority,
           lane: item.lane,
-          estimatedEffort: item.estimatedEffort,
+          storyPoints: item.estimatedEffort,
           tags: item.tags,
         });
         roadmapItemsCreated++;
@@ -720,9 +722,9 @@ Please refine the plan based on this feedback. Respond in the same JSON format.`
     // Create accepted tasks
     for (const task of suggestedTasks.filter(t => t.accepted)) {
       try {
-        taskQueueService.enqueue({
+        taskQueueService.enqueueTask({
           projectId,
-          type: task.type as any,
+          taskType: task.type as any,
           title: task.title,
           description: task.description,
           agentType: task.agentType as any,

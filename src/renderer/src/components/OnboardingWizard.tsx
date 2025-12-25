@@ -94,6 +94,14 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const [selectedRoadmapItems, setSelectedRoadmapItems] = useState<Set<string>>(new Set())
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set())
   const [applyResult, setApplyResult] = useState<{ roadmapItemsCreated: number; tasksCreated: number } | null>(null)
+  const [lastSuccessStep, setLastSuccessStep] = useState<WizardStep>('analyzing')
+
+  // Handle retry without page reload
+  const handleRetry = useCallback(() => {
+    setError(null)
+    // Go back to the last successful step
+    setStep(lastSuccessStep)
+  }, [lastSuccessStep])
 
   // Analyze project on mount
   useEffect(() => {
@@ -101,6 +109,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       try {
         const result = await window.electronAPI.onboarding.analyze(projectPath)
         setAnalysis(result)
+        setLastSuccessStep('review-analysis')
         setStep('review-analysis')
       } catch (err) {
         setError(`Analysis failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
@@ -131,6 +140,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       setSelectedRoadmapItems(roadmapTitles)
       setSelectedTasks(taskTitles)
 
+      setLastSuccessStep('review-plan')
       setStep('review-plan')
     } catch (err) {
       setError(`Plan generation failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
@@ -160,10 +170,11 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       setSelectedRoadmapItems(roadmapTitles)
       setSelectedTasks(taskTitles)
 
+      setLastSuccessStep('review-plan')
       setStep('review-plan')
     } catch (err) {
       setError(`Feedback update failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
-      setStep('review-plan')
+      // Don't setStep here - let error handler show error, retry will go to lastSuccessStep
     }
   }, [plan, feedback, selectedRoadmapItems, selectedTasks])
 
@@ -183,6 +194,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
       const result = await window.electronAPI.onboarding.applyPlan(plan.id)
       setApplyResult(result)
+      setLastSuccessStep('complete')
       setStep('complete')
     } catch (err) {
       setError(`Failed to apply plan: ${err instanceof Error ? err.message : 'Unknown error'}`)
@@ -605,7 +617,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 Close
               </button>
               <button
-                onClick={() => window.location.reload()}
+                onClick={handleRetry}
                 className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-medium transition-colors"
               >
                 Retry

@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events'
 import { spawn } from 'child_process'
 import { databaseService } from './database.service'
-import { taskQueueService } from './task-queue.service'
+// Note: taskQueueService is loaded lazily to avoid circular dependency
 import type { QueuedTask, TaskType, TaskOutputData } from '@shared/types'
 
 type RiskLevel = 'low' | 'medium' | 'high' | 'critical'
@@ -139,6 +139,8 @@ class ApprovalResolverService extends EventEmitter {
     taskId: string,
     outputData: TaskOutputData | null
   ): Promise<QualityAssessment> {
+    // Lazy load to avoid circular dependency
+    const { taskQueueService } = require('./task-queue.service')
     const task = taskQueueService.getTask(taskId)
     if (!task) {
       return {

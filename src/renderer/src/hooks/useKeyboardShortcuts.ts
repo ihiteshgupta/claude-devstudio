@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { useAppStore } from '../stores/appStore'
 
 interface ShortcutConfig {
@@ -16,6 +16,9 @@ const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
 
 export function useKeyboardShortcuts(): void {
   const { currentProject, setViewMode, setShowTutorial, toggleCommandPalette, toggleSidebar, clearMessages } = useAppStore()
+
+  // Use ref to hold current handler - avoids re-registering listener on every dependency change
+  const handlerRef = useRef<((e: KeyboardEvent) => void) | null>(null)
 
   const handleShortcut = useCallback(
     (e: KeyboardEvent) => {
@@ -162,10 +165,20 @@ export function useKeyboardShortcuts(): void {
     [currentProject, setViewMode, setShowTutorial, toggleCommandPalette, toggleSidebar, clearMessages]
   )
 
+  // Keep ref updated with latest handler
   useEffect(() => {
-    window.addEventListener('keydown', handleShortcut)
-    return () => window.removeEventListener('keydown', handleShortcut)
+    handlerRef.current = handleShortcut
   }, [handleShortcut])
+
+  // Register event listener only once using stable wrapper
+  useEffect(() => {
+    const stableHandler = (e: KeyboardEvent): void => {
+      handlerRef.current?.(e)
+    }
+
+    window.addEventListener('keydown', stableHandler)
+    return () => window.removeEventListener('keydown', stableHandler)
+  }, []) // Empty deps - only runs once
 }
 
 // Export shortcut descriptions for help menu

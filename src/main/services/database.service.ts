@@ -6,6 +6,7 @@ import type { AgentMessage, AgentType, ChatSession, Sprint, SprintStatus } from 
 
 class DatabaseService {
   private db: Database.Database
+  private writeLock = false  // Simple write lock for serialization
 
   constructor() {
     const dataPath = join(app.getPath('userData'), 'claude-data')
@@ -15,6 +16,10 @@ class DatabaseService {
 
     const dbPath = join(dataPath, 'claude.db')
     this.db = new Database(dbPath)
+
+    // Enable WAL mode for better concurrent read performance
+    this.db.pragma('journal_mode = WAL')
+
     this.initTables()
   }
 
@@ -23,6 +28,57 @@ class DatabaseService {
    */
   getDb(): Database.Database {
     return this.db
+  }
+
+  /**
+   * Execute a write operation with serialization
+   * Prevents concurrent writes from multiple services
+   * Note: better-sqlite3 is synchronous, so we use a simple lock
+   * The lock is only held during the synchronous operation
+   */
+  withWriteLock<T>(operation: () => T): T {
+    // For synchronous better-sqlite3, contention is minimal
+    // If lock is held, throw immediately rather than busy-wait
+    if (this.writeLock) {
+      throw new Error('Database write operation already in progress. Please retry.')
+    }
+    this.writeLock = true
+    try {
+      return operation()
+    } finally {
+      this.writeLock = false
+    }
+  }
+
+  /**
+   * Execute a write operation with retry logic
+   * Use this for operations that may encounter lock contention
+   */
+  withWriteLockRetry<T>(operation: () => T, maxRetries = 3, delayMs = 10): T {
+    let lastError: Error | null = null
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return this.withWriteLock(operation)
+      } catch (error) {
+        lastError = error as Error
+        if (attempt < maxRetries - 1) {
+          // Synchronous delay using Atomics (non-blocking in Node.js context)
+          const buffer = new SharedArrayBuffer(4)
+          const view = new Int32Array(buffer)
+          Atomics.wait(view, 0, 0, delayMs * (attempt + 1))
+        }
+      }
+    }
+    throw lastError || new Error('Database write failed after retries')
+  }
+
+  /**
+   * Execute multiple operations in a transaction
+   */
+  transaction<T>(operation: () => T): T {
+    return this.withWriteLock(() => {
+      return this.db.transaction(operation)()
+    })
   }
 
   private initTables(): void {
@@ -236,15 +292,34 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         task_id TEXT NOT NULL,
         gate_type TEXT NOT NULL,
-        description TEXT NOT NULL,
+        title TEXT,
+        description TEXT,
         status TEXT NOT NULL DEFAULT 'pending',
-        required_data TEXT,
+        requires_review INTEGER DEFAULT 1,
+        review_data TEXT,
         response_data TEXT,
         created_at TEXT NOT NULL,
         resolved_at TEXT,
         FOREIGN KEY (task_id) REFERENCES task_queue(id) ON DELETE CASCADE
       )
     `)
+
+    // Migrate approval_gates table - add missing columns
+    try {
+      this.db.exec(`ALTER TABLE approval_gates ADD COLUMN title TEXT`)
+    } catch {
+      // Column already exists, ignore
+    }
+    try {
+      this.db.exec(`ALTER TABLE approval_gates ADD COLUMN requires_review INTEGER DEFAULT 1`)
+    } catch {
+      // Column already exists, ignore
+    }
+    try {
+      this.db.exec(`ALTER TABLE approval_gates ADD COLUMN review_data TEXT`)
+    } catch {
+      // Column already exists, ignore
+    }
 
     // Error patterns table (for learning from failures)
     this.db.exec(`

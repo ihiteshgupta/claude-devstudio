@@ -43,6 +43,7 @@ class AutonomousExecutorService extends EventEmitter {
 
   private watchdogInterval: NodeJS.Timeout | null = null
   private monitorInterval: NodeJS.Timeout | null = null
+  private taskEventHandler: ((event: any) => void) | null = null
 
   /**
    * Create empty stats object
@@ -310,7 +311,13 @@ class AutonomousExecutorService extends EventEmitter {
    * Subscribe to task queue events
    */
   private subscribeToTaskEvents(): void {
-    taskQueueService.on('task-event', (event) => {
+    // Remove existing handler if present to avoid duplicates
+    if (this.taskEventHandler) {
+      taskQueueService.removeListener('task-event', this.taskEventHandler)
+    }
+
+    // Create and store the handler reference
+    this.taskEventHandler = (event: any) => {
       this.state.stats.lastActivityAt = new Date()
 
       if (event.type === 'task-completed') {
@@ -326,7 +333,9 @@ class AutonomousExecutorService extends EventEmitter {
 
       // Forward event
       this.emit('task-event', event)
-    })
+    }
+
+    taskQueueService.on('task-event', this.taskEventHandler)
   }
 
   /**
@@ -390,7 +399,11 @@ class AutonomousExecutorService extends EventEmitter {
       clearInterval(this.monitorInterval)
       this.monitorInterval = null
     }
-    taskQueueService.removeAllListeners('task-event')
+    // Remove only our specific listener, not all listeners
+    if (this.taskEventHandler) {
+      taskQueueService.removeListener('task-event', this.taskEventHandler)
+      this.taskEventHandler = null
+    }
   }
 
   /**
