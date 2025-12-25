@@ -319,7 +319,13 @@ class OnboardingService extends EventEmitter {
       this.emit('plan:error', { error });
 
       // Return a default plan if AI fails
-      return this.createDefaultPlan(planId, config, analysis);
+      const defaultPlan = this.createDefaultPlan(planId, config, analysis);
+
+      // Store the default plan so it can be retrieved later
+      this.storePlan(defaultPlan);
+
+      this.emit('plan:generated', { plan: defaultPlan });
+      return defaultPlan;
     }
   }
 
@@ -595,7 +601,10 @@ Respond in JSON format:
     const db = databaseService.getDb();
     const row = db.prepare('SELECT * FROM onboarding_plans WHERE id = ?').get(planId) as any;
 
-    if (!row) throw new Error('Plan not found');
+    if (!row) {
+      console.error(`[OnboardingService] Plan not found: ${planId}`);
+      throw new Error(`Plan not found: ${planId}. The plan may have expired or was never saved. Please regenerate the plan.`);
+    }
 
     const suggestedRoadmap = JSON.parse(row.suggested_roadmap).map((item: SuggestedRoadmapItem) => ({
       ...item,
