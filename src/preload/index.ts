@@ -29,7 +29,11 @@ import {
   type ApprovalGate,
   type TaskQueueEvent,
   type TechChoice,
-  type TechCategory
+  type TechCategory,
+  type MemorySession,
+  type MemoryDecision,
+  type MemoryCreatedItem,
+  type MemoryRejection
 } from '@shared/types'
 
 // Stream callback type
@@ -1130,6 +1134,37 @@ const api = {
     }>> => {
       return ipcRenderer.invoke(IPC_CHANNELS.ACTIONS_QUEUE_ALL, { actions, projectId, options })
     }
+  },
+
+  // Agent Memory
+  memory: {
+    startSession: (projectId: string, agentType: AgentType): Promise<string> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEMORY_START_SESSION, { projectId, agentType }),
+    endSession: (sessionId: string): Promise<void> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEMORY_END_SESSION, { sessionId }),
+    getSession: (sessionId: string): Promise<MemorySession | null> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEMORY_GET_SESSION, { sessionId }),
+    recordDecision: (sessionId: string, decision: {
+      type: 'approved' | 'rejected' | 'modified' | 'deferred'
+      itemType: string
+      itemTitle: string
+      reason?: string
+    }): Promise<MemoryDecision> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEMORY_RECORD_DECISION, { sessionId, decision }),
+    recordCreated: (sessionId: string, item: {
+      id: string
+      type: string
+      title: string
+    }): Promise<MemoryCreatedItem> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEMORY_RECORD_CREATED, { sessionId, item }),
+    recordRejection: (sessionId: string, itemTitle: string, reason?: string): Promise<MemoryRejection> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEMORY_RECORD_REJECTION, { sessionId, itemTitle, reason }),
+    getRecentDecisions: (projectId: string, limit?: number): Promise<MemoryDecision[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEMORY_GET_RECENT_DECISIONS, { projectId, limit }),
+    getRecentCreated: (projectId: string, limit?: number): Promise<MemoryCreatedItem[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEMORY_GET_RECENT_CREATED, { projectId, limit }),
+    clearSession: (sessionId: string): Promise<void> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEMORY_CLEAR_SESSION, { sessionId }),
   }
 }
 

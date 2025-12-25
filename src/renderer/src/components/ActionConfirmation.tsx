@@ -79,6 +79,7 @@ interface ActionConfirmationProps {
   actions: ActionWithDuplicates[]
   projectId: string
   onActionExecuted?: (result: ExecutionResult) => void
+  onActionRejected?: (actionId: string) => void
   onDismiss?: () => void
 }
 
@@ -97,6 +98,7 @@ export function ActionConfirmation({
   actions,
   projectId,
   onActionExecuted,
+  onActionRejected,
   onDismiss,
 }: ActionConfirmationProps): JSX.Element | null {
   const [expanded, setExpanded] = useState(true)
@@ -156,7 +158,9 @@ export function ActionConfirmation({
       ...prev,
       [actionId]: { status: 'rejected' }
     }))
-  }, [])
+    // Notify parent component about rejection
+    onActionRejected?.(actionId)
+  }, [onActionRejected])
 
   const handleApproveAll = useCallback(async () => {
     const pendingActions = actions.filter(a =>
@@ -173,10 +177,12 @@ export function ActionConfirmation({
     for (const action of actions) {
       if (!actionStates[action.id] || actionStates[action.id].status === 'pending') {
         newStates[action.id] = { status: 'rejected' }
+        // Notify parent about each rejection
+        onActionRejected?.(action.id)
       }
     }
     setActionStates(prev => ({ ...prev, ...newStates }))
-  }, [actions, actionStates])
+  }, [actions, actionStates, onActionRejected])
 
   // Filter out actions that are already processed
   const pendingCount = actions.filter(a =>

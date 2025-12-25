@@ -21,6 +21,7 @@ import { validationService } from './services/validation.service'
 import { securityScannerService } from './services/security-scanner.service'
 import { onboardingService, initOnboardingTables } from './services/onboarding.service'
 import { chatBridgeService } from './services/chat-bridge.service'
+import { agentMemoryService } from './services/agent-memory.service'
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -943,6 +944,46 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.ACTIONS_QUEUE_ALL, async (_, { actions, projectId, options }) => {
     return chatBridgeService.queueAllApproved(actions, projectId, options)
+  })
+
+  // ==============================================
+  // Agent Memory
+  // ==============================================
+
+  ipcMain.handle(IPC_CHANNELS.MEMORY_START_SESSION, async (_, { projectId, agentType }) => {
+    return agentMemoryService.startSession(projectId, agentType)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.MEMORY_END_SESSION, async (_, { sessionId }) => {
+    return agentMemoryService.endSession(sessionId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.MEMORY_GET_SESSION, async (_, { sessionId }) => {
+    return agentMemoryService.getSession(sessionId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.MEMORY_RECORD_DECISION, async (_, { sessionId, decision }) => {
+    return agentMemoryService.recordDecision(sessionId, decision)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.MEMORY_RECORD_CREATED, async (_, { sessionId, item }) => {
+    return agentMemoryService.recordCreated(sessionId, item)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.MEMORY_RECORD_REJECTION, async (_, { sessionId, suggestion }) => {
+    return agentMemoryService.recordRejection(sessionId, suggestion)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.MEMORY_GET_RECENT_DECISIONS, async (_, { projectId, limit }) => {
+    return agentMemoryService.getRecentDecisions(projectId, limit)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.MEMORY_GET_RECENT_CREATED, async (_, { projectId, limit }) => {
+    return agentMemoryService.getRecentCreated(projectId, limit)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.MEMORY_CLEAR_SESSION, async (_, { sessionId }) => {
+    return agentMemoryService.clearSession(sessionId)
   })
 }
 

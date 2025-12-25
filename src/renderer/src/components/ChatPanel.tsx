@@ -75,6 +75,7 @@ export function ChatPanel(): JSX.Element {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const streamCleanupRef = useRef<(() => void) | null>(null)
+  const memorySessionIdRef = useRef<string | null>(null)
 
   // Load sessions when project changes
   useEffect(() => {
@@ -84,6 +85,35 @@ export function ChatPanel(): JSX.Element {
       })
     }
   }, [currentProject, setSessions])
+
+  // Memory session lifecycle: Start when project/agent changes, end on cleanup
+  useEffect(() => {
+    // Start memory session when we have both project and agent
+    if (currentProject?.id && currentAgentType) {
+      // Check if memory API is available
+      if (window.electronAPI.memory?.startSession) {
+        window.electronAPI.memory.startSession(currentProject.id, currentAgentType)
+          .then(sessionId => {
+            memorySessionIdRef.current = sessionId
+            console.log('[ChatPanel] Started memory session:', sessionId)
+          })
+          .catch(err => {
+            console.warn('[ChatPanel] Memory system not available:', err)
+          })
+      }
+    }
+
+    // Cleanup: End memory session when component unmounts or deps change
+    return () => {
+      if (memorySessionIdRef.current && window.electronAPI.memory?.endSession) {
+        window.electronAPI.memory.endSession(memorySessionIdRef.current)
+          .catch(err => {
+            console.warn('[ChatPanel] Failed to end memory session:', err)
+          })
+        memorySessionIdRef.current = null
+      }
+    }
+  }, [currentProject?.id, currentAgentType])
 
   // Load file tree when file panel is opened
   const loadFileTree = useCallback(async () => {
@@ -511,6 +541,31 @@ export function ChatPanel(): JSX.Element {
                           'Created',
                           `${result.createdItemType} created successfully`
                         )
+
+                        // Record created item in memory system
+                        if (memorySessionIdRef.current && window.electronAPI.memory?.recordCreated) {
+                          window.electronAPI.memory.recordCreated(memorySessionIdRef.current, {
+                            id: result.createdItemId || '',
+                            type: result.createdItemType || '',
+                            title: detectedActions.find(a => a.id === result.actionId)?.title || ''
+                          }).catch(err => {
+                            console.warn('[ChatPanel] Failed to record created item in memory:', err)
+                          })
+                        }
+                      }
+                    }}
+                    onActionRejected={(actionId: string) => {
+                      // Record rejection in memory system
+                      if (memorySessionIdRef.current && window.electronAPI.memory?.recordRejection) {
+                        const action = detectedActions.find(a => a.id === actionId)
+                        if (action) {
+                          window.electronAPI.memory.recordRejection(
+                            memorySessionIdRef.current,
+                            action.title
+                          ).catch(err => {
+                            console.warn('[ChatPanel] Failed to record rejection in memory:', err)
+                          })
+                        }
                       }
                     }}
                     onDismiss={() => {

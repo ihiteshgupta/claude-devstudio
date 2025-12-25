@@ -775,6 +775,56 @@ export const IPC_CHANNELS = {
   ACTIONS_GET_SUGGESTIONS: 'actions:get-suggestions',
   ACTIONS_QUEUE: 'actions:queue',
   ACTIONS_QUEUE_ALL: 'actions:queue-all',
+
+  // Agent Memory
+  MEMORY_START_SESSION: 'memory:start-session',
+  MEMORY_END_SESSION: 'memory:end-session',
+  MEMORY_GET_SESSION: 'memory:get-session',
+  MEMORY_RECORD_DECISION: 'memory:record-decision',
+  MEMORY_RECORD_CREATED: 'memory:record-created',
+  MEMORY_RECORD_REJECTION: 'memory:record-rejection',
+  MEMORY_GET_RECENT_DECISIONS: 'memory:get-recent-decisions',
+  MEMORY_GET_RECENT_CREATED: 'memory:get-recent-created',
+  MEMORY_CLEAR_SESSION: 'memory:clear-session',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
+
+// ============================================
+// Agent Memory System Types
+// ============================================
+
+export interface MemorySession {
+  id: string
+  projectId: string
+  agentType: AgentType
+  startedAt: Date
+  endedAt?: Date
+}
+
+export interface MemoryDecision {
+  id: string
+  sessionId: string
+  type: 'approved' | 'rejected' | 'modified' | 'deferred'
+  itemType: string
+  itemTitle: string
+  reason?: string
+  timestamp: Date
+}
+
+export interface MemoryCreatedItem {
+  id: string
+  sessionId: string
+  itemId: string
+  itemType: string
+  itemTitle: string
+  timestamp: Date
+}
+
+export interface MemoryRejection {
+  id: string
+  sessionId: string
+  itemTitle: string
+  reason?: string
+  timestamp: Date
+}
