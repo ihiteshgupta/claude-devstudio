@@ -1381,4 +1381,8 @@ export interface WorkflowStep {
   completedAt?: Date
 }
 
+// Export the class for testing
+export { DatabaseService }
+
+// Export the singleton instance for production use
 export const databaseService = new DatabaseService()
