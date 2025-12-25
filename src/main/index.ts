@@ -20,6 +20,7 @@ import { bugReportService } from './services/bug-report.service'
 import { validationService } from './services/validation.service'
 import { securityScannerService } from './services/security-scanner.service'
 import { onboardingService, initOnboardingTables } from './services/onboarding.service'
+import { chatBridgeService } from './services/chat-bridge.service'
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -910,6 +911,30 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.ONBOARDING_APPLY_PLAN, async (_, planId) => {
     return onboardingService.applyPlan(planId)
+  })
+
+  // ==============================================
+  // Action Bridge (Chat-to-Database Autonomy)
+  // ==============================================
+
+  ipcMain.handle(IPC_CHANNELS.ACTIONS_PARSE, async (_, { responseText, context }) => {
+    return chatBridgeService.parseActions(responseText, context)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ACTIONS_CHECK_DUPLICATES, async (_, { projectId, type, title }) => {
+    return chatBridgeService.checkDuplicates(projectId, type, title)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ACTIONS_EXECUTE, async (_, { action, projectId, options }) => {
+    return chatBridgeService.executeAction(action, projectId, options)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ACTIONS_EXECUTE_ALL, async (_, { actions, projectId }) => {
+    return chatBridgeService.executeActions(actions, projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ACTIONS_GET_SUGGESTIONS, async (_, { responseText, projectId, context }) => {
+    return chatBridgeService.getSuggestedActions(responseText, projectId, context)
   })
 }
 

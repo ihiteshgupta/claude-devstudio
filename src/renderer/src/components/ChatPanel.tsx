@@ -7,6 +7,7 @@ import type { AgentMessage, FileNode, AgentType } from '@shared/types'
 import { ThinkingBlock } from './ThinkingBlock'
 import { TodoList } from './TodoList'
 import { SubAgentPanel } from './SubAgentPanel'
+import { ActionConfirmation, type ActionWithDuplicates, type ExecutionResult } from './ActionConfirmation'
 import { useToast } from './Toast'
 import {
   X,
@@ -69,6 +70,8 @@ export function ChatPanel(): JSX.Element {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
   const [loadingFiles, setLoadingFiles] = useState(false)
+  const [detectedActions, setDetectedActions] = useState<ActionWithDuplicates[]>([])
+  const [lastMessageIdWithActions, setLastMessageIdWithActions] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const streamCleanupRef = useRef<(() => void) | null>(null)
@@ -258,6 +261,23 @@ export function ChatPanel(): JSX.Element {
             })
           } catch (error) {
             console.error('Failed to save assistant message:', error)
+          }
+        }
+
+        // Detect actionable items in the response
+        if (currentProject && finalContent) {
+          try {
+            const suggestedActions = await window.electronAPI.actions.getSuggestions(
+              finalContent,
+              currentProject.id,
+              { agentType: currentAgentType }
+            )
+            if (suggestedActions.length > 0) {
+              setDetectedActions(suggestedActions as ActionWithDuplicates[])
+              setLastMessageIdWithActions(assistantMessageId)
+            }
+          } catch (error) {
+            console.error('Failed to detect actions:', error)
           }
         }
 
@@ -477,7 +497,30 @@ export function ChatPanel(): JSX.Element {
           }} />
         ) : (
           messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
+            <div key={message.id}>
+              <MessageBubble message={message} />
+              {/* Show action confirmation after the message that triggered it */}
+              {message.id === lastMessageIdWithActions && detectedActions.length > 0 && currentProject && (
+                <div className="ml-11 mt-2">
+                  <ActionConfirmation
+                    actions={detectedActions}
+                    projectId={currentProject.id}
+                    onActionExecuted={(result: ExecutionResult) => {
+                      if (result.success) {
+                        toast.success(
+                          'Created',
+                          `${result.createdItemType} created successfully`
+                        )
+                      }
+                    }}
+                    onDismiss={() => {
+                      setDetectedActions([])
+                      setLastMessageIdWithActions(null)
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           ))
         )}
         <div ref={messagesEndRef} />

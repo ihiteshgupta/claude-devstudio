@@ -766,6 +766,13 @@ export const IPC_CHANNELS = {
   ONBOARDING_UPDATE_PLAN: 'onboarding:update-plan',
   ONBOARDING_APPLY_PLAN: 'onboarding:apply-plan',
   ONBOARDING_EVENT: 'onboarding:event',
+
+  // Action Bridge (Chat-to-Database Autonomy)
+  ACTIONS_PARSE: 'actions:parse',
+  ACTIONS_CHECK_DUPLICATES: 'actions:check-duplicates',
+  ACTIONS_EXECUTE: 'actions:execute',
+  ACTIONS_EXECUTE_ALL: 'actions:execute-all',
+  ACTIONS_GET_SUGGESTIONS: 'actions:get-suggestions',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

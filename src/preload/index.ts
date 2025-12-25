@@ -1005,6 +1005,92 @@ const api = {
         ipcRenderer.removeListener(IPC_CHANNELS.ONBOARDING_EVENT, handler)
       }
     }
+  },
+
+  // Action Bridge (Chat-to-Database Autonomy)
+  actions: {
+    parse: (responseText: string, context?: { agentType?: string; projectId?: string }): Promise<Array<{
+      id: string
+      type: string
+      title: string
+      description?: string
+      metadata: Record<string, unknown>
+      confidence: number
+      sourceText: string
+      status: string
+    }>> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ACTIONS_PARSE, { responseText, context })
+    },
+    checkDuplicates: (projectId: string, type: string, title: string): Promise<{
+      hasDuplicate: boolean
+      matches: Array<{
+        id: string
+        title: string
+        type: string
+        similarity: number
+      }>
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ACTIONS_CHECK_DUPLICATES, { projectId, type, title })
+    },
+    execute: (action: {
+      id: string
+      type: string
+      title: string
+      description?: string
+      metadata: Record<string, unknown>
+    }, projectId: string, options?: {
+      skipDuplicateCheck?: boolean
+      forceCreate?: boolean
+    }): Promise<{
+      actionId: string
+      success: boolean
+      createdItemId?: string
+      createdItemType?: string
+      error?: string
+      duplicateFound?: {
+        id: string
+        title: string
+        similarity: number
+      }
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ACTIONS_EXECUTE, { action, projectId, options })
+    },
+    executeAll: (actions: Array<{
+      id: string
+      type: string
+      title: string
+      description?: string
+      metadata: Record<string, unknown>
+    }>, projectId: string): Promise<Array<{
+      actionId: string
+      success: boolean
+      createdItemId?: string
+      createdItemType?: string
+      error?: string
+    }>> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ACTIONS_EXECUTE_ALL, { actions, projectId })
+    },
+    getSuggestions: (responseText: string, projectId: string, context?: { agentType?: string }): Promise<Array<{
+      id: string
+      type: string
+      title: string
+      description?: string
+      metadata: Record<string, unknown>
+      confidence: number
+      sourceText: string
+      status: string
+      duplicateCheck?: {
+        hasDuplicate: boolean
+        matches: Array<{
+          id: string
+          title: string
+          type: string
+          similarity: number
+        }>
+      }
+    }>> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ACTIONS_GET_SUGGESTIONS, { responseText, projectId, context })
+    }
   }
 }
 
