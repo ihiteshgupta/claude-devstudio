@@ -8,7 +8,9 @@
 import { EventEmitter } from 'events'
 import { databaseService } from './database.service'
 import { actionParserService, ExtractedAction, ActionType } from './action-parser.service'
+import { taskQueueService } from './task-queue.service'
 import { v4 as uuidv4 } from 'uuid'
+import type { AutonomyLevel } from '@shared/types'
 
 export interface ExecutionResult {
   actionId: string
@@ -21,6 +23,9 @@ export interface ExecutionResult {
     title: string
     similarity: number
   }
+  // New fields for queue integration:
+  queued?: boolean
+  queuedTaskId?: string
 }
 
 export interface DuplicateCheckResult {
@@ -171,6 +176,9 @@ class ChatBridgeService extends EventEmitter {
     options?: {
       skipDuplicateCheck?: boolean
       forceCreate?: boolean
+      autoQueue?: boolean
+      autonomyLevel?: AutonomyLevel
+      priority?: number
     }
   ): Promise<ExecutionResult> {
     // Check for duplicates first
@@ -187,26 +195,65 @@ class ChatBridgeService extends EventEmitter {
     }
 
     try {
+      let result: ExecutionResult
+
       switch (action.type) {
         case 'create-story':
-          return this.createStory(action, projectId)
+          result = this.createStory(action, projectId)
+          break
 
         case 'create-task':
-          return this.createTask(action, projectId)
+          result = this.createTask(action, projectId)
+          break
 
         case 'create-roadmap-item':
-          return this.createRoadmapItem(action, projectId)
+          result = this.createRoadmapItem(action, projectId)
+          break
 
         case 'create-test':
-          return this.createTest(action, projectId)
+          result = this.createTest(action, projectId)
+          break
 
         default:
-          return {
+          result = {
             actionId: action.id,
             success: false,
             error: `Action type ${action.type} not yet implemented`,
           }
       }
+
+      // Auto-queue if requested and creation was successful
+      if (options?.autoQueue && result.success && result.createdItemId && result.createdItemType === 'task') {
+        try {
+          const task = taskQueueService.getTask(result.createdItemId)
+          if (task) {
+            // Update autonomy level if specified
+            if (options.autonomyLevel) {
+              taskQueueService.updateAutonomyLevel(result.createdItemId, options.autonomyLevel)
+            }
+            // Update priority if specified
+            if (options.priority !== undefined) {
+              taskQueueService.reorderTask(result.createdItemId, options.priority)
+            }
+            // Mark as queued
+            taskQueueService.updateTaskStatus(result.createdItemId, 'queued')
+
+            result.queued = true
+            result.queuedTaskId = result.createdItemId
+
+            this.emit('task-queued', {
+              taskId: result.createdItemId,
+              actionId: action.id,
+              projectId
+            })
+          }
+        } catch (queueError) {
+          console.error('Failed to queue task:', queueError)
+          // Don't fail the entire operation if queueing fails
+        }
+      }
+
+      return result
     } catch (error) {
       return {
         actionId: action.id,
@@ -472,6 +519,86 @@ class ChatBridgeService extends EventEmitter {
     )
 
     return actionsWithDuplicates
+  }
+
+  /**
+   * Queue a task for autonomous execution
+   */
+  async queueForExecution(
+    action: ExtractedAction,
+    projectId: string,
+    options?: {
+      autonomyLevel?: AutonomyLevel
+      startImmediately?: boolean
+      priority?: number
+    }
+  ): Promise<{ taskId: string; queued: boolean }> {
+    // Execute the action first to create the item
+    const result = await this.executeAction(action, projectId, {
+      autoQueue: true,
+      autonomyLevel: options?.autonomyLevel,
+      priority: options?.priority
+    })
+
+    if (!result.success || !result.queuedTaskId) {
+      return {
+        taskId: result.createdItemId || '',
+        queued: false
+      }
+    }
+
+    // If startImmediately is requested, update status to queued (already done in executeAction)
+    // The actual execution would be triggered by the queue service externally
+
+    return {
+      taskId: result.queuedTaskId,
+      queued: true
+    }
+  }
+
+  /**
+   * Batch queue multiple actions for autonomous execution
+   */
+  async queueAllApproved(
+    actions: ExtractedAction[],
+    projectId: string,
+    options?: {
+      autonomyLevel?: AutonomyLevel
+      priority?: number
+    }
+  ): Promise<Array<{ actionId: string; taskId?: string; queued: boolean; error?: string }>> {
+    const results: Array<{ actionId: string; taskId?: string; queued: boolean; error?: string }> = []
+
+    for (const action of actions) {
+      try {
+        // Only queue approved or proposed actions
+        if (action.status === 'approved' || action.status === 'proposed') {
+          const queueResult = await this.queueForExecution(action, projectId, options)
+          results.push({
+            actionId: action.id,
+            taskId: queueResult.taskId,
+            queued: queueResult.queued
+          })
+        } else {
+          results.push({
+            actionId: action.id,
+            queued: false,
+            error: `Action status is ${action.status}, not approved`
+          })
+        }
+      } catch (error) {
+        results.push({
+          actionId: action.id,
+          queued: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
+      }
+    }
+
+    const queuedCount = results.filter(r => r.queued).length
+    this.emit('batch-queued', { count: queuedCount, projectId })
+
+    return results
   }
 }
 

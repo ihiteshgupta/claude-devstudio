@@ -936,6 +936,14 @@ function setupIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.ACTIONS_GET_SUGGESTIONS, async (_, { responseText, projectId, context }) => {
     return chatBridgeService.getSuggestedActions(responseText, projectId, context)
   })
+
+  ipcMain.handle(IPC_CHANNELS.ACTIONS_QUEUE, async (_, { action, projectId, options }) => {
+    return chatBridgeService.queueForExecution(action, projectId, options)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ACTIONS_QUEUE_ALL, async (_, { actions, projectId, options }) => {
+    return chatBridgeService.queueAllApproved(actions, projectId, options)
+  })
 }
 
 // App lifecycle

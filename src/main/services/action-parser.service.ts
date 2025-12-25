@@ -39,6 +39,16 @@ export interface StoryAction extends ExtractedAction {
   }
 }
 
+export interface EnhancedTaskMetadata {
+  taskType: string
+  taskTypeConfidence: number
+  suggestedAgent: string
+  priority: number
+  urgencyLevel: 'critical' | 'high' | 'medium' | 'low'
+  estimatedComplexity?: 'simple' | 'medium' | 'complex'
+  dependencies?: string[] // extracted mentions of other tasks/stories
+}
+
 export interface TaskAction extends ExtractedAction {
   type: 'create-task'
   metadata: {
@@ -47,6 +57,7 @@ export interface TaskAction extends ExtractedAction {
     autonomyLevel?: 'auto' | 'approval_gates' | 'supervised'
     priority?: number
     parentStoryId?: string
+    enhanced?: EnhancedTaskMetadata
   }
 }
 
@@ -115,22 +126,76 @@ const ACTION_PATTERNS = {
   ],
 }
 
-// Priority extraction patterns
-const PRIORITY_PATTERNS = {
-  critical: /(?:critical|urgent|asap|immediately|blocking)/i,
-  high: /(?:high\s+priority|important|soon|priority)/i,
-  medium: /(?:medium\s+priority|moderate|normal)/i,
-  low: /(?:low\s+priority|later|when\s+possible|nice\s+to\s+have)/i,
+// Enhanced task type detection patterns with more keywords
+const TASK_TYPE_PATTERNS = {
+  testing: /(?:test|spec|verify|validate|qa|quality|coverage|jest|playwright|e2e|vitest|mocha|jasmine)/i,
+  'security-audit': /(?:security|vulnerability|audit|penetration|auth|owasp|xss|sql\s+injection|csrf|authentication|authorization|encryption)/i,
+  deployment: /(?:deploy|release|ship|ci\/cd|pipeline|docker|kubernetes|staging|production|k8s|helm|terraform|ansible)/i,
+  documentation: /(?:document|readme|api\s+doc|jsdoc|comment|swagger|openapi|typedoc|docstring|guide|tutorial)/i,
+  'code-review': /(?:review|check|inspect|pr|pull\s+request|code\s+quality|lint|audit\s+code)/i,
+  refactoring: /(?:refactor|clean|improve|optimize|restructure|simplify|modernize|reorganize|rewrite)/i,
+  'bug-fix': /(?:fix|bug|issue|error|crash|broken|regression|defect|hotfix)/i,
+  'code-generation': /(?:implement|create|build|develop|add\s+feature|new\s+component|generate|scaffold|boilerplate)/i,
+  research: /(?:research|investigate|explore|spike|prototype|poc|proof\s+of\s+concept|experiment|feasibility)/i,
 }
 
-// Agent type detection from context
+// Priority extraction patterns - enhanced with urgency words and deadline hints
+const PRIORITY_PATTERNS = {
+  critical: /(?:critical|urgent|asap|immediately|blocking|blocker|emergency|showstopper)/i,
+  high: /(?:high\s+priority|important|soon|priority|urgent|before\s+the\s+demo|by\s+tomorrow)/i,
+  medium: /(?:medium\s+priority|moderate|normal)/i,
+  low: /(?:low\s+priority|later|when\s+possible|nice\s+to\s+have|eventually|someday)/i,
+}
+
+// Deadline hint patterns for extracting urgency
+const DEADLINE_PATTERNS = {
+  critical: /(?:by\s+today|by\s+tomorrow|by\s+eod|end\s+of\s+day|this\s+afternoon)/i,
+  high: /(?:this\s+week|end\s+of\s+week|before\s+(?:the\s+)?(?:demo|meeting|launch|release))/i,
+  medium: /(?:next\s+week|this\s+sprint|next\s+sprint)/i,
+  low: /(?:next\s+month|when\s+(?:we\s+)?(?:can|have\s+time)|backlog)/i,
+}
+
+// Relative priority patterns
+const RELATIVE_PRIORITY_PATTERNS = {
+  high: /(?:more\s+important\s+than|higher\s+priority\s+than|before\s+we|first\s+we\s+need)/i,
+  low: /(?:after\s+(?:we\s+)?finish|less\s+important|lower\s+priority|once\s+we\s+(?:complete|have))/i,
+}
+
+// Agent type detection from context - enhanced mapping based on task types
 const AGENT_TYPE_PATTERNS = {
-  developer: /(?:implement|code|develop|build|create\s+component|write\s+function)/i,
-  tester: /(?:test|verify|validate|qa|quality)/i,
-  security: /(?:security|vulnerability|audit|penetration|auth)/i,
-  devops: /(?:deploy|ci\/cd|pipeline|docker|kubernetes|infrastructure)/i,
-  documentation: /(?:document|readme|api\s+docs|jsdoc|comment)/i,
+  developer: /(?:implement|code|develop|build|create\s+component|write\s+function|refactor|fix\s+bug)/i,
+  tester: /(?:test|verify|validate|qa|quality|coverage|e2e|integration\s+test)/i,
+  security: /(?:security|vulnerability|audit|penetration|auth|owasp|xss|csrf)/i,
+  devops: /(?:deploy|ci\/cd|pipeline|docker|kubernetes|infrastructure|release|ship)/i,
+  documentation: /(?:document|readme|api\s+docs|jsdoc|comment|swagger|guide)/i,
   'product-owner': /(?:story|requirement|acceptance|user\s+need|feature\s+spec)/i,
+}
+
+// Task type to agent mapping
+const TASK_TYPE_TO_AGENT: Record<string, string> = {
+  'testing': 'tester',
+  'security-audit': 'security',
+  'deployment': 'devops',
+  'documentation': 'documentation',
+  'code-generation': 'developer',
+  'refactoring': 'developer',
+  'bug-fix': 'developer',
+  'code-review': 'developer',
+  'research': 'developer',
+}
+
+// Dependency extraction patterns
+const DEPENDENCY_PATTERNS = [
+  /(?:after|once)\s+(?:implementing|completing|finishing)\s+([a-zA-Z0-9\s-]+?)(?:\.|,|$)/i,
+  /(?:requires?|needs?|depends?\s+on)\s+(?:the\s+)?([a-zA-Z0-9\s-]+?)(?:\s+(?:module|feature|component|task|story))?(?:\.|,|$)/i,
+  /(?:once|when)\s+#(\d+)\s+is\s+(?:done|complete|finished)/i,
+  /(?:before|prior\s+to)\s+(?:this|starting),?\s+(?:we\s+)?(?:need|must|should)\s+([a-zA-Z0-9\s-]+)/i,
+]
+
+// Complexity estimation patterns
+const COMPLEXITY_PATTERNS = {
+  simple: /(?:simple|easy|quick|trivial|straightforward|small|minor)/i,
+  complex: /(?:complex|difficult|challenging|large|major|significant|extensive|multi-step)/i,
 }
 
 class ActionParserService extends EventEmitter {
@@ -241,16 +306,37 @@ class ActionParserService extends EventEmitter {
         const title = this.cleanTitle(match[1] || match[0])
         if (title.length < 5) continue
 
+        // Enhanced task type detection
+        const taskTypeDetection = this.detectTaskTypeWithConfidence(text)
+        const enhancedPriority = this.extractEnhancedPriority(text)
+        const dependencies = this.extractDependencies(text)
+        const complexity = this.estimateComplexity(text)
+        const suggestedAgent = this.suggestAgentForTaskType(taskTypeDetection.taskType, text)
+
+        // Create enhanced metadata
+        const enhanced: EnhancedTaskMetadata = {
+          taskType: taskTypeDetection.taskType,
+          taskTypeConfidence: taskTypeDetection.confidence,
+          suggestedAgent,
+          priority: enhancedPriority.priority,
+          urgencyLevel: enhancedPriority.urgencyLevel,
+          estimatedComplexity: complexity,
+          dependencies: dependencies.length > 0 ? dependencies : undefined,
+        }
+
         return {
           id: this.generateId(),
           type: 'create-task',
           title,
           description: this.extractDescription(text, title),
           metadata: {
-            taskType: this.detectTaskType(text),
-            agentType: context?.agentType || this.detectAgentType(text),
+            // Backward compatible fields
+            taskType: taskTypeDetection.taskType,
+            agentType: context?.agentType || suggestedAgent,
             autonomyLevel: this.detectAutonomyLevel(text),
-            priority: this.extractNumericPriority(text),
+            priority: enhancedPriority.priority,
+            // New enhanced metadata
+            enhanced,
           },
           confidence: this.calculateConfidence(text, 'task'),
           sourceText: text.substring(0, 200),
@@ -387,7 +473,7 @@ class ActionParserService extends EventEmitter {
   /**
    * Extract description from surrounding text
    */
-  private extractDescription(text: string, title: string): string {
+  private extractDescription(text: string, title: string): string | undefined {
     // Try to find description after the title
     const afterTitle = text.split(title)[1] || ''
     const description = afterTitle
@@ -410,6 +496,7 @@ class ActionParserService extends EventEmitter {
 
   /**
    * Extract numeric priority (0-100)
+   * @deprecated Use extractEnhancedPriority instead
    */
   private extractNumericPriority(text: string): number {
     const priority = this.extractPriority(text)
@@ -419,6 +506,52 @@ class ActionParserService extends EventEmitter {
       case 'medium': return 50
       case 'low': return 25
     }
+  }
+
+  /**
+   * Enhanced priority extraction with urgency level
+   */
+  private extractEnhancedPriority(text: string): { priority: number; urgencyLevel: 'critical' | 'high' | 'medium' | 'low' } {
+    let urgencyLevel: 'critical' | 'high' | 'medium' | 'low' = 'medium'
+    let baseScore = 50
+
+    // Check explicit priority patterns
+    if (PRIORITY_PATTERNS.critical.test(text)) {
+      urgencyLevel = 'critical'
+      baseScore = 100
+    } else if (PRIORITY_PATTERNS.high.test(text)) {
+      urgencyLevel = 'high'
+      baseScore = 75
+    } else if (PRIORITY_PATTERNS.low.test(text)) {
+      urgencyLevel = 'low'
+      baseScore = 25
+    }
+
+    // Check deadline patterns (can elevate priority)
+    if (DEADLINE_PATTERNS.critical.test(text)) {
+      urgencyLevel = 'critical'
+      baseScore = Math.max(baseScore, 100)
+    } else if (DEADLINE_PATTERNS.high.test(text)) {
+      urgencyLevel = urgencyLevel === 'low' ? 'medium' : urgencyLevel === 'medium' ? 'high' : urgencyLevel
+      baseScore = Math.max(baseScore, 75)
+    } else if (DEADLINE_PATTERNS.medium.test(text)) {
+      baseScore = Math.max(baseScore, 50)
+    }
+
+    // Check relative priority patterns
+    if (RELATIVE_PRIORITY_PATTERNS.high.test(text)) {
+      baseScore = Math.min(100, baseScore + 15)
+      if (urgencyLevel === 'low' || urgencyLevel === 'medium') {
+        urgencyLevel = 'high'
+      }
+    } else if (RELATIVE_PRIORITY_PATTERNS.low.test(text)) {
+      baseScore = Math.max(10, baseScore - 15)
+      if (urgencyLevel === 'high') {
+        urgencyLevel = 'medium'
+      }
+    }
+
+    return { priority: baseScore, urgencyLevel }
   }
 
   /**
@@ -453,17 +586,33 @@ class ActionParserService extends EventEmitter {
   }
 
   /**
-   * Detect task type
+   * Detect task type with confidence scoring
+   * @deprecated Use detectTaskTypeWithConfidence instead for more detailed info
    */
   private detectTaskType(text: string): string {
-    if (/test|spec|verify/i.test(text)) return 'testing'
-    if (/security|audit|vulnerability/i.test(text)) return 'security-audit'
-    if (/deploy|release|ship/i.test(text)) return 'deployment'
-    if (/document|readme|api\s+doc/i.test(text)) return 'documentation'
-    if (/review|check|inspect/i.test(text)) return 'code-review'
-    if (/refactor|clean|improve/i.test(text)) return 'refactoring'
-    if (/fix|bug|issue/i.test(text)) return 'bug-fix'
-    return 'code-generation'
+    const detection = this.detectTaskTypeWithConfidence(text)
+    return detection.taskType
+  }
+
+  /**
+   * Enhanced task type detection with confidence scoring
+   */
+  private detectTaskTypeWithConfidence(text: string): { taskType: string; confidence: number } {
+    let bestMatch = { taskType: 'code-generation', confidence: 0.3 }
+
+    for (const [taskType, pattern] of Object.entries(TASK_TYPE_PATTERNS)) {
+      if (pattern.test(text)) {
+        // Count keyword matches for better confidence
+        const matches = text.toLowerCase().match(pattern)
+        const confidence = Math.min(0.95, 0.6 + (matches ? matches.length * 0.1 : 0))
+
+        if (confidence > bestMatch.confidence) {
+          bestMatch = { taskType, confidence }
+        }
+      }
+    }
+
+    return bestMatch
   }
 
   /**
@@ -474,6 +623,55 @@ class ActionParserService extends EventEmitter {
       if (pattern.test(text)) return agent
     }
     return 'developer'
+  }
+
+  /**
+   * Suggest agent based on task type
+   */
+  private suggestAgentForTaskType(taskType: string, text: string): string {
+    // First try to get agent from task type mapping
+    const mappedAgent = TASK_TYPE_TO_AGENT[taskType]
+    if (mappedAgent) return mappedAgent
+
+    // Fallback to pattern-based detection
+    return this.detectAgentType(text)
+  }
+
+  /**
+   * Extract dependencies from text
+   */
+  private extractDependencies(text: string): string[] {
+    const dependencies: string[] = []
+    const seen = new Set<string>()
+
+    for (const pattern of DEPENDENCY_PATTERNS) {
+      let match
+      const regex = new RegExp(pattern.source, pattern.flags + 'g')
+      while ((match = regex.exec(text)) !== null) {
+        const dep = match[1]?.trim()
+        if (dep && dep.length > 2 && !seen.has(dep.toLowerCase())) {
+          dependencies.push(dep)
+          seen.add(dep.toLowerCase())
+        }
+      }
+    }
+
+    return dependencies.slice(0, 5) // Limit to 5 dependencies
+  }
+
+  /**
+   * Estimate task complexity
+   */
+  private estimateComplexity(text: string): 'simple' | 'medium' | 'complex' | undefined {
+    if (COMPLEXITY_PATTERNS.simple.test(text)) return 'simple'
+    if (COMPLEXITY_PATTERNS.complex.test(text)) return 'complex'
+
+    // Heuristic: longer descriptions often mean more complex tasks
+    const wordCount = text.split(/\s+/).length
+    if (wordCount > 50) return 'complex'
+    if (wordCount < 15) return 'simple'
+
+    return 'medium'
   }
 
   /**
@@ -545,7 +743,7 @@ class ActionParserService extends EventEmitter {
   /**
    * Calculate confidence score for extraction
    */
-  private calculateConfidence(text: string, actionType: string): number {
+  private calculateConfidence(text: string, _actionType: string): number {
     let confidence = 0.5 // Base confidence
 
     // Increase for explicit action words
@@ -607,6 +805,27 @@ class ActionParserService extends EventEmitter {
     }
 
     return summary as Record<ActionType, number>
+  }
+
+  /**
+   * Get enhanced task metadata for any text (useful for analysis)
+   */
+  getEnhancedTaskMetadata(text: string): EnhancedTaskMetadata {
+    const taskTypeDetection = this.detectTaskTypeWithConfidence(text)
+    const enhancedPriority = this.extractEnhancedPriority(text)
+    const dependencies = this.extractDependencies(text)
+    const complexity = this.estimateComplexity(text)
+    const suggestedAgent = this.suggestAgentForTaskType(taskTypeDetection.taskType, text)
+
+    return {
+      taskType: taskTypeDetection.taskType,
+      taskTypeConfidence: taskTypeDetection.confidence,
+      suggestedAgent,
+      priority: enhancedPriority.priority,
+      urgencyLevel: enhancedPriority.urgencyLevel,
+      estimatedComplexity: complexity,
+      dependencies: dependencies.length > 0 ? dependencies : undefined,
+    }
   }
 }
 

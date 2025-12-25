@@ -1041,6 +1041,9 @@ const api = {
     }, projectId: string, options?: {
       skipDuplicateCheck?: boolean
       forceCreate?: boolean
+      autoQueue?: boolean
+      autonomyLevel?: AutonomyLevel
+      priority?: number
     }): Promise<{
       actionId: string
       success: boolean
@@ -1052,6 +1055,8 @@ const api = {
         title: string
         similarity: number
       }
+      queued?: boolean
+      queuedTaskId?: string
     }> => {
       return ipcRenderer.invoke(IPC_CHANNELS.ACTIONS_EXECUTE, { action, projectId, options })
     },
@@ -1090,6 +1095,40 @@ const api = {
       }
     }>> => {
       return ipcRenderer.invoke(IPC_CHANNELS.ACTIONS_GET_SUGGESTIONS, { responseText, projectId, context })
+    },
+    queue: (action: {
+      id: string
+      type: string
+      title: string
+      description?: string
+      metadata: Record<string, unknown>
+    }, projectId: string, options?: {
+      autonomyLevel?: AutonomyLevel
+      startImmediately?: boolean
+      priority?: number
+    }): Promise<{
+      taskId: string
+      queued: boolean
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ACTIONS_QUEUE, { action, projectId, options })
+    },
+    queueAll: (actions: Array<{
+      id: string
+      type: string
+      title: string
+      description?: string
+      metadata: Record<string, unknown>
+      status: string
+    }>, projectId: string, options?: {
+      autonomyLevel?: AutonomyLevel
+      priority?: number
+    }): Promise<Array<{
+      actionId: string
+      taskId?: string
+      queued: boolean
+      error?: string
+    }>> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ACTIONS_QUEUE_ALL, { actions, projectId, options })
     }
   }
 }

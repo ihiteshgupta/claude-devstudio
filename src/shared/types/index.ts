@@ -773,6 +773,8 @@ export const IPC_CHANNELS = {
   ACTIONS_EXECUTE: 'actions:execute',
   ACTIONS_EXECUTE_ALL: 'actions:execute-all',
   ACTIONS_GET_SUGGESTIONS: 'actions:get-suggestions',
+  ACTIONS_QUEUE: 'actions:queue',
+  ACTIONS_QUEUE_ALL: 'actions:queue-all',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
