@@ -45,7 +45,7 @@ test.describe('Claude DevStudio E2E Tests', () => {
   // ============================================
   test.describe('Sidebar Navigation', () => {
     test('should show sidebar with Projects heading', async ({ page }) => {
-      await expect(page.locator('h2:has-text("Projects")')).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible()
     })
 
     test('should show View heading in sidebar', async ({ page }) => {
@@ -230,7 +230,7 @@ test.describe('Claude DevStudio E2E Tests', () => {
 
     test('should have sidebar visible', async ({ page }) => {
       // Sidebar with Projects heading
-      await expect(page.locator('h2:has-text("Projects")')).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible()
     })
 
     test('should have main content area', async ({ page }) => {
