@@ -1,0 +1,67 @@
+Claude DevStudio
+Copyright (c) 2024 Claude DevStudio Contributors
+
+TRADEMARK NOTICE
+================
+
+"Claude" is a trademark of Anthropic, PBC. Claude DevStudio is not affiliated
+with, endorsed, or sponsored by Anthropic. Use of the Claude name in this
+project indicates compatibility with the Claude Code CLI tool.
+
+This project provides a graphical user interface that integrates with the
+Claude Code CLI, which must be separately installed and authenticated by users.
+
+THIRD-PARTY SOFTWARE
+====================
+
+This product includes software developed by third parties. See the
+THIRD-PARTY-LICENSES.md file for complete license information for all
+dependencies.
+
+Major dependencies include:
+
+Electron (MIT License)
+Copyright (c) Electron contributors
+Copyright (c) GitHub Inc.
+
+React (MIT License)
+Copyright (c) Meta Platforms, Inc. and affiliates.
+
+better-sqlite3 (MIT License)
+Copyright (c) Joshua Wise
+
+Zustand (MIT License)
+Copyright (c) Paul Henschel
+
+Radix UI Components (MIT License)
+Copyright (c) WorkOS
+
+Tailwind CSS (MIT License)
+Copyright (c) Tailwind Labs, Inc.
+
+Vite (MIT License)
+Copyright (c) Evan You and Vite contributors
+
+TypeScript (Apache License 2.0)
+Copyright (c) Microsoft Corporation
+
+PRIVACY NOTICE
+==============
+
+Claude DevStudio stores data locally on your device in the following locations:
+- Chat sessions and messages
+- User stories and sprint data
+- Task queue and workflow state
+- Project metadata
+
+No data is transmitted to external servers except when communicating with the
+Claude Code CLI, which is governed by Anthropic's terms of service.
+
+DISCLAIMER
+==========
+
+This software is provided as-is, without warranty of any kind. The developers
+are not responsible for any damages arising from the use of this software.
+
+AI-generated code and recommendations should be reviewed before use in
+production environments.
