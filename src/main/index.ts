@@ -1,4 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { claudeService } from './services/claude.service'
@@ -1131,6 +1132,23 @@ app.whenReady().then(() => {
 
   setupIpcHandlers()
   createWindow()
+
+  // Auto-updater: Check for updates in production
+  if (!is.dev) {
+    autoUpdater.checkForUpdatesAndNotify()
+
+    autoUpdater.on('update-available', () => {
+      mainWindow?.webContents.send('update-available')
+    })
+
+    autoUpdater.on('update-downloaded', () => {
+      mainWindow?.webContents.send('update-downloaded')
+    })
+
+    autoUpdater.on('error', (error) => {
+      console.error('Auto-updater error:', error)
+    })
+  }
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

@@ -1,5 +1,13 @@
 appId: com.claude.devstudio
 productName: Claude DevStudio
+
+# Auto-update configuration for GitHub Releases
+publish:
+  provider: github
+  owner: ihiteshgupta
+  repo: claude-devstudio
+  releaseType: release
+
 directories:
   buildResources: resources
   output: dist-app
