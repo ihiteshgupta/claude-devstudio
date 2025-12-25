@@ -786,6 +786,26 @@ export const IPC_CHANNELS = {
   MEMORY_GET_RECENT_DECISIONS: 'memory:get-recent-decisions',
   MEMORY_GET_RECENT_CREATED: 'memory:get-recent-created',
   MEMORY_CLEAR_SESSION: 'memory:clear-session',
+
+  // Learning & Evolution
+  LEARNING_GET_PATTERNS: 'learning:get-patterns',
+  LEARNING_GET_TOP_PATTERNS: 'learning:get-top-patterns',
+  LEARNING_SHOULD_AUTO_APPROVE: 'learning:should-auto-approve',
+  LEARNING_GET_SUGGESTED_FORMAT: 'learning:get-suggested-format',
+  LEARNING_RECORD_APPROVAL: 'learning:record-approval',
+  LEARNING_RECORD_REJECTION: 'learning:record-rejection',
+  LEARNING_RECORD_EDIT: 'learning:record-edit',
+
+  // Style Analysis
+  STYLE_ANALYZE_PROJECT: 'style:analyze-project',
+  STYLE_SUGGEST_TITLE: 'style:suggest-title',
+  STYLE_GET_CACHED: 'style:get-cached',
+
+  // Feedback Tracking
+  FEEDBACK_RECORD: 'feedback:record',
+  FEEDBACK_GET_ITEM: 'feedback:get-item',
+  FEEDBACK_GET_SUMMARY: 'feedback:get-summary',
+  FEEDBACK_GET_RECENT: 'feedback:get-recent',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

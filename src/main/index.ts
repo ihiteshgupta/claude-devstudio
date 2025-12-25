@@ -22,6 +22,9 @@ import { securityScannerService } from './services/security-scanner.service'
 import { onboardingService, initOnboardingTables } from './services/onboarding.service'
 import { chatBridgeService } from './services/chat-bridge.service'
 import { agentMemoryService } from './services/agent-memory.service'
+import { learningService } from './services/learning.service'
+import { styleAnalyzerService } from './services/style-analyzer.service'
+import { feedbackTrackerService } from './services/feedback-tracker.service'
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -984,6 +987,74 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.MEMORY_CLEAR_SESSION, async (_, { sessionId }) => {
     return agentMemoryService.clearSession(sessionId)
+  })
+
+  // ==============================================
+  // Learning & Evolution
+  // ==============================================
+
+  ipcMain.handle(IPC_CHANNELS.LEARNING_GET_PATTERNS, async (_, { projectId, type }) => {
+    return learningService.getPatterns(projectId, type)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.LEARNING_GET_TOP_PATTERNS, async (_, { projectId, limit }) => {
+    return learningService.getTopPatterns(projectId, limit)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.LEARNING_SHOULD_AUTO_APPROVE, async (_, { projectId, itemType, title }) => {
+    return learningService.shouldAutoApprove(projectId, itemType, title)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.LEARNING_GET_SUGGESTED_FORMAT, async (_, { projectId, itemType }) => {
+    return learningService.getSuggestedFormat(projectId, itemType)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.LEARNING_RECORD_APPROVAL, async (_, { projectId, itemType, title, metadata }) => {
+    return learningService.recordApproval(projectId, itemType, title, metadata)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.LEARNING_RECORD_REJECTION, async (_, { projectId, itemType, title, reason }) => {
+    return learningService.recordRejection(projectId, itemType, title, reason)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.LEARNING_RECORD_EDIT, async (_, { projectId, itemType, original, corrected }) => {
+    return learningService.recordEdit(projectId, itemType, original, corrected)
+  })
+
+  // ==============================================
+  // Style Analysis
+  // ==============================================
+
+  ipcMain.handle(IPC_CHANNELS.STYLE_ANALYZE_PROJECT, async (_, { projectId }) => {
+    return styleAnalyzerService.analyzeProject(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.STYLE_SUGGEST_TITLE, async (_, { projectId, itemType, keywords }) => {
+    return styleAnalyzerService.suggestTitle(projectId, itemType, keywords)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.STYLE_GET_CACHED, async (_, { projectId }) => {
+    return styleAnalyzerService.getCached(projectId)
+  })
+
+  // ==============================================
+  // Feedback Tracking
+  // ==============================================
+
+  ipcMain.handle(IPC_CHANNELS.FEEDBACK_RECORD, async (_, entry) => {
+    return feedbackTrackerService.record(entry)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.FEEDBACK_GET_ITEM, async (_, { itemId }) => {
+    return feedbackTrackerService.getItem(itemId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.FEEDBACK_GET_SUMMARY, async (_, { projectId }) => {
+    return feedbackTrackerService.getSummary(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.FEEDBACK_GET_RECENT, async (_, { projectId, limit }) => {
+    return feedbackTrackerService.getRecent(projectId, limit)
   })
 }
 

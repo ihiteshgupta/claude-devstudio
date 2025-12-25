@@ -1165,6 +1165,46 @@ const api = {
       ipcRenderer.invoke(IPC_CHANNELS.MEMORY_GET_RECENT_CREATED, { projectId, limit }),
     clearSession: (sessionId: string): Promise<void> =>
       ipcRenderer.invoke(IPC_CHANNELS.MEMORY_CLEAR_SESSION, { sessionId }),
+  },
+
+  // Learning & Evolution
+  learning: {
+    getPatterns: (projectId: string, type?: string): Promise<unknown[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.LEARNING_GET_PATTERNS, { projectId, type }),
+    getTopPatterns: (projectId: string, limit?: number): Promise<unknown[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.LEARNING_GET_TOP_PATTERNS, { projectId, limit }),
+    shouldAutoApprove: (projectId: string, itemType: string, title: string): Promise<{ shouldApprove: boolean; confidence: number; reason: string }> =>
+      ipcRenderer.invoke(IPC_CHANNELS.LEARNING_SHOULD_AUTO_APPROVE, { projectId, itemType, title }),
+    getSuggestedFormat: (projectId: string, itemType: string): Promise<{ template?: string; examples: string[] }> =>
+      ipcRenderer.invoke(IPC_CHANNELS.LEARNING_GET_SUGGESTED_FORMAT, { projectId, itemType }),
+    recordApproval: (projectId: string, itemType: string, title: string, metadata?: Record<string, unknown>): Promise<void> =>
+      ipcRenderer.invoke(IPC_CHANNELS.LEARNING_RECORD_APPROVAL, { projectId, itemType, title, metadata }),
+    recordRejection: (projectId: string, itemType: string, title: string, reason?: string): Promise<void> =>
+      ipcRenderer.invoke(IPC_CHANNELS.LEARNING_RECORD_REJECTION, { projectId, itemType, title, reason }),
+    recordEdit: (projectId: string, itemType: string, original: string, corrected: string): Promise<void> =>
+      ipcRenderer.invoke(IPC_CHANNELS.LEARNING_RECORD_EDIT, { projectId, itemType, original, corrected }),
+  },
+
+  // Style Analysis
+  style: {
+    analyzeProject: (projectId: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.STYLE_ANALYZE_PROJECT, { projectId }),
+    suggestTitle: (projectId: string, itemType: string, keywords: string[]): Promise<string> =>
+      ipcRenderer.invoke(IPC_CHANNELS.STYLE_SUGGEST_TITLE, { projectId, itemType, keywords }),
+    getCached: (projectId: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.STYLE_GET_CACHED, { projectId }),
+  },
+
+  // Feedback Tracking
+  feedback: {
+    record: (entry: { projectId: string; itemId: string; itemType: string; feedbackType: string; feedbackData?: unknown; source: 'auto' | 'user' }): Promise<string> =>
+      ipcRenderer.invoke(IPC_CHANNELS.FEEDBACK_RECORD, entry),
+    getItem: (itemId: string): Promise<unknown[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.FEEDBACK_GET_ITEM, { itemId }),
+    getSummary: (projectId: string): Promise<{ total: number; byType: Record<string, number>; bySource: Record<string, number>; last7Days: number }> =>
+      ipcRenderer.invoke(IPC_CHANNELS.FEEDBACK_GET_SUMMARY, { projectId }),
+    getRecent: (projectId: string, limit?: number): Promise<unknown[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.FEEDBACK_GET_RECENT, { projectId, limit }),
   }
 }
 
