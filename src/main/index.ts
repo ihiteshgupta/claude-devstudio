@@ -25,6 +25,8 @@ import { agentMemoryService } from './services/agent-memory.service'
 import { learningService } from './services/learning.service'
 import { styleAnalyzerService } from './services/style-analyzer.service'
 import { feedbackTrackerService } from './services/feedback-tracker.service'
+import { agentCoordinationService } from './services/agent-coordination.service'
+import { sprintAutomationService } from './services/sprint-automation.service'
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -1055,6 +1057,66 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.FEEDBACK_GET_RECENT, async (_, { projectId, limit }) => {
     return feedbackTrackerService.getRecent(projectId, limit)
+  })
+
+  // ==============================================
+  // Agent Coordination (Phase 5)
+  // ==============================================
+
+  ipcMain.handle(IPC_CHANNELS.COORDINATION_INITIATE_HANDOFF, async (_, from, to, itemId, itemType, context) => {
+    return agentCoordinationService.initiateHandoff(from, to, { id: itemId, type: itemType, projectId: context.projectId }, context)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.COORDINATION_GET_PENDING_HANDOFFS, async (_, projectId, agentType) => {
+    return agentCoordinationService.getPendingHandoffs(projectId, agentType)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.COORDINATION_ACCEPT_HANDOFF, async (_, handoffId) => {
+    return agentCoordinationService.acceptHandoff(handoffId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.COORDINATION_COMPLETE_HANDOFF, async (_, handoffId, result) => {
+    return agentCoordinationService.completeHandoff(handoffId, result)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.COORDINATION_GET_CONFLICTS, async (_, projectId) => {
+    return agentCoordinationService.getUnresolvedConflicts(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.COORDINATION_RESOLVE_CONFLICT, async (_, conflictId, decision, decidedBy) => {
+    return agentCoordinationService.resolveConflict(conflictId, decision, decidedBy)
+  })
+
+  // ==============================================
+  // Sprint Automation (Phase 5)
+  // ==============================================
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_GENERATE_SUGGESTION, async (_, projectId, capacity) => {
+    return sprintAutomationService.generateSprintSuggestion(projectId, capacity)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_APPLY_SUGGESTION, async (_, suggestionId) => {
+    return sprintAutomationService.applySprintSuggestion(suggestionId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SPRINT_GET_SUGGESTIONS, async (_, projectId) => {
+    return sprintAutomationService.getSuggestions(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_START, async (_, projectId, userIntent) => {
+    return sprintAutomationService.startChatWorkflow(projectId, userIntent)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_ADVANCE, async (_, workflowId, stepOutput) => {
+    return sprintAutomationService.advanceWorkflow(workflowId, stepOutput)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_CANCEL_CHAT, async (_, workflowId) => {
+    return sprintAutomationService.cancelWorkflow(workflowId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_GET_ACTIVE, async (_, projectId) => {
+    return sprintAutomationService.getActiveWorkflows(projectId)
   })
 }
 

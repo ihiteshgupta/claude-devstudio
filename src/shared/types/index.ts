@@ -806,6 +806,23 @@ export const IPC_CHANNELS = {
   FEEDBACK_GET_ITEM: 'feedback:get-item',
   FEEDBACK_GET_SUMMARY: 'feedback:get-summary',
   FEEDBACK_GET_RECENT: 'feedback:get-recent',
+
+  // Agent Coordination (Phase 5)
+  COORDINATION_INITIATE_HANDOFF: 'coordination:initiate-handoff',
+  COORDINATION_GET_PENDING_HANDOFFS: 'coordination:get-pending-handoffs',
+  COORDINATION_ACCEPT_HANDOFF: 'coordination:accept-handoff',
+  COORDINATION_COMPLETE_HANDOFF: 'coordination:complete-handoff',
+  COORDINATION_GET_CONFLICTS: 'coordination:get-conflicts',
+  COORDINATION_RESOLVE_CONFLICT: 'coordination:resolve-conflict',
+
+  // Sprint Automation (Phase 5)
+  SPRINT_GENERATE_SUGGESTION: 'sprint:generate-suggestion',
+  SPRINT_APPLY_SUGGESTION: 'sprint:apply-suggestion',
+  SPRINT_GET_SUGGESTIONS: 'sprint:get-suggestions',
+  WORKFLOW_START: 'workflow:start-chat',
+  WORKFLOW_ADVANCE: 'workflow:advance',
+  WORKFLOW_CANCEL_CHAT: 'workflow:cancel-chat',
+  WORKFLOW_GET_ACTIVE: 'workflow:get-active',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

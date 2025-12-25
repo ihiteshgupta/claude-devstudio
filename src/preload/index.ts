@@ -1205,6 +1205,40 @@ const api = {
       ipcRenderer.invoke(IPC_CHANNELS.FEEDBACK_GET_SUMMARY, { projectId }),
     getRecent: (projectId: string, limit?: number): Promise<unknown[]> =>
       ipcRenderer.invoke(IPC_CHANNELS.FEEDBACK_GET_RECENT, { projectId, limit }),
+  },
+
+  // Agent Coordination (Phase 5)
+  coordination: {
+    initiateHandoff: (from: AgentType, to: AgentType, itemId: string, itemType: string, context: unknown): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.COORDINATION_INITIATE_HANDOFF, from, to, itemId, itemType, context),
+    getPendingHandoffs: (projectId: string, agentType?: AgentType): Promise<unknown[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.COORDINATION_GET_PENDING_HANDOFFS, projectId, agentType),
+    acceptHandoff: (handoffId: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.COORDINATION_ACCEPT_HANDOFF, handoffId),
+    completeHandoff: (handoffId: string, result: unknown): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.COORDINATION_COMPLETE_HANDOFF, handoffId, result),
+    getConflicts: (projectId: string): Promise<unknown[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.COORDINATION_GET_CONFLICTS, projectId),
+    resolveConflict: (conflictId: string, decision: string, decidedBy: 'user' | 'auto'): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.COORDINATION_RESOLVE_CONFLICT, conflictId, decision, decidedBy),
+  },
+
+  // Sprint Automation (Phase 5)
+  sprintAutomation: {
+    generateSuggestion: (projectId: string, capacity?: number): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SPRINT_GENERATE_SUGGESTION, projectId, capacity),
+    applySuggestion: (suggestionId: string): Promise<string> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SPRINT_APPLY_SUGGESTION, suggestionId),
+    getSuggestions: (projectId: string): Promise<unknown[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.SPRINT_GET_SUGGESTIONS, projectId),
+    startWorkflow: (projectId: string, userIntent: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_START, projectId, userIntent),
+    advanceWorkflow: (workflowId: string, stepOutput: unknown): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_ADVANCE, workflowId, stepOutput),
+    cancelWorkflow: (workflowId: string): Promise<boolean> =>
+      ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_CANCEL_CHAT, workflowId),
+    getActiveWorkflows: (projectId: string): Promise<unknown[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_GET_ACTIVE, projectId),
   }
 }
 
