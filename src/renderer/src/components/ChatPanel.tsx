@@ -23,7 +23,10 @@ import {
   FileType,
   File,
   Globe,
-  Settings
+  Settings,
+  Sparkles,
+  Send,
+  Bot
 } from 'lucide-react'
 import { AgentIcon } from '../utils/icons'
 
@@ -347,20 +350,20 @@ export function ChatPanel(): JSX.Element {
     <div className="flex-1 flex overflow-hidden">
       {/* Session History Sidebar */}
       {showSessionHistory && (
-        <div className="w-64 border-r border-border bg-card/30 flex flex-col">
-          <div className="p-3 border-b border-border flex items-center justify-between">
+        <div className="w-64 border-r border-border/50 bg-card/50 backdrop-blur-sm flex flex-col">
+          <div className="p-3 border-b border-border/50 flex items-center justify-between">
             <h3 className="font-medium text-sm">Chat History</h3>
             <button
               onClick={() => setShowSessionHistory(false)}
-              className="p-1 hover:bg-secondary rounded"
+              className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="p-2">
+          <div className="p-3">
             <button
               onClick={startNewChat}
-              className="w-full p-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 flex items-center gap-2 justify-center"
+              className="w-full p-2.5 text-sm bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-xl hover:opacity-90 flex items-center gap-2 justify-center shadow-md shadow-primary/20 transition-all duration-200"
             >
               <Plus className="w-4 h-4" />
               New Chat
@@ -368,18 +371,20 @@ export function ChatPanel(): JSX.Element {
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {filteredSessions.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">No previous chats</p>
+              <p className="text-xs text-muted-foreground text-center py-8">No previous chats</p>
             ) : (
               filteredSessions.map((session) => (
                 <div
                   key={session.id}
-                  className={`group p-2 rounded-lg cursor-pointer text-sm hover:bg-secondary transition-colors ${
-                    currentSessionId === session.id ? 'bg-secondary' : ''
+                  className={`group p-3 rounded-xl cursor-pointer text-sm transition-all duration-200 ${
+                    currentSessionId === session.id
+                      ? 'bg-primary/10 border-l-2 border-primary'
+                      : 'hover:bg-secondary/50'
                   }`}
                   onClick={() => loadSession(session.id)}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="truncate flex-1">
+                    <span className="truncate flex-1 font-medium">
                       {new Date(session.createdAt).toLocaleDateString()}
                     </span>
                     <button
@@ -387,12 +392,12 @@ export function ChatPanel(): JSX.Element {
                         e.stopPropagation()
                         deleteSession(session.id)
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/20 rounded transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-destructive/20 rounded-lg transition-all"
                     >
                       <Trash2 className="w-3 h-3 text-destructive" />
                     </button>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {new Date(session.createdAt).toLocaleTimeString()}
                   </p>
                 </div>
@@ -405,22 +410,28 @@ export function ChatPanel(): JSX.Element {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Agent header */}
-        <div className="p-4 border-b border-border bg-card/50">
+        <div className="px-4 py-3 border-b border-border/50 bg-card/30 backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AgentIcon agentType={currentAgentType as AgentType} size="lg" />
-              <h2 className="font-semibold">{AGENT_NAMES[currentAgentType]}</h2>
-              {filteredSessions.length > 0 && (
-                <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
-                  {filteredSessions.length} chats
-                </span>
-              )}
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20">
+                <AgentIcon agentType={currentAgentType as AgentType} size="lg" />
+              </div>
+              <div>
+                <h2 className="font-semibold">{AGENT_NAMES[currentAgentType]}</h2>
+                {filteredSessions.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {filteredSessions.length} conversation{filteredSessions.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowSessionHistory(!showSessionHistory)}
-                className={`p-2 rounded-lg transition-colors ${
-                  showSessionHistory ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary'
+                className={`p-2.5 rounded-xl transition-all duration-200 ${
+                  showSessionHistory
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'hover:bg-secondary/50 text-muted-foreground hover:text-foreground'
                 }`}
                 title="Chat History"
               >
@@ -428,7 +439,7 @@ export function ChatPanel(): JSX.Element {
               </button>
               <button
                 onClick={startNewChat}
-                className="p-2 hover:bg-secondary rounded-lg transition-colors"
+                className="p-2.5 hover:bg-secondary/50 rounded-xl transition-all duration-200 text-muted-foreground hover:text-foreground"
                 title="New Chat"
               >
                 <Plus className="w-5 h-5" />
@@ -513,59 +524,59 @@ export function ChatPanel(): JSX.Element {
         </div>
       )}
 
-      {/* Input area */}
-      <div className="p-4 border-t border-border bg-card/50">
+      {/* Input area - Floating bar design */}
+      <div className="p-4">
         {/* Selected files indicator */}
         {selectedFiles.length > 0 && !showFilePanel && (
-          <div className="mb-2 flex flex-wrap gap-1">
+          <div className="mb-3 flex flex-wrap gap-1.5">
             {selectedFiles.slice(0, 3).map((file) => (
               <span
                 key={file}
-                className="text-xs bg-primary/20 text-primary px-2 py-1 rounded flex items-center gap-1"
+                className="text-xs bg-primary/10 text-primary px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 border border-primary/20"
               >
                 <FileText className="w-3 h-3" />
                 {file.split('/').pop()}
                 <button
                   onClick={() => toggleFileSelection(file)}
-                  className="hover:text-destructive"
+                  className="hover:text-destructive ml-0.5"
                 >
-                  ×
+                  <X className="w-3 h-3" />
                 </button>
               </span>
             ))}
             {selectedFiles.length > 3 && (
-              <span className="text-xs text-muted-foreground px-2 py-1">
+              <span className="text-xs text-muted-foreground px-2 py-1.5">
                 +{selectedFiles.length - 3} more
               </span>
             )}
           </div>
         )}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowFilePanel(!showFilePanel)}
-            className={`p-3 rounded-lg transition-colors flex-shrink-0 ${
-              showFilePanel || selectedFiles.length > 0
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary hover:bg-secondary/80'
-            }`}
-            title="Add files to context"
-          >
-            <Folder className="w-5 h-5" />
-          </button>
+        <div className="relative bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl shadow-lg focus-within:border-primary/40 focus-within:shadow-xl focus-within:shadow-primary/5 transition-all duration-200">
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`Ask ${AGENT_NAMES[currentAgentType]}...`}
-            className="flex-1 min-h-[60px] max-h-32 p-3 bg-secondary rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full bg-transparent px-4 py-3 pr-28 resize-none placeholder:text-muted-foreground/50 focus:outline-none min-h-[52px] max-h-32"
             disabled={isLoading}
           />
-          <div className="flex flex-col gap-2">
+          <div className="absolute right-2 bottom-2 flex items-center gap-1">
+            <button
+              onClick={() => setShowFilePanel(!showFilePanel)}
+              className={`p-2 rounded-lg transition-all duration-200 ${
+                showFilePanel || selectedFiles.length > 0
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-secondary text-muted-foreground hover:text-foreground'
+              }`}
+              title="Add files to context"
+            >
+              <Folder className="w-4 h-4" />
+            </button>
             {isLoading ? (
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition-opacity"
+                className="p-2 px-4 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl font-medium transition-all duration-200"
               >
                 Cancel
               </button>
@@ -573,14 +584,14 @@ export function ChatPanel(): JSX.Element {
               <button
                 onClick={handleSend}
                 disabled={!input.trim()}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 px-4 bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 text-primary-foreground rounded-xl font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-primary/20 disabled:shadow-none flex items-center gap-2"
               >
-                Send
+                <Send className="w-4 h-4" />
               </button>
             )}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="text-xs text-muted-foreground/60 mt-2 text-center">
           Press Enter to send, Shift+Enter for new line
           {selectedFiles.length > 0 && ` • ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} attached`}
         </p>
@@ -594,20 +605,28 @@ function MessageBubble({ message }: { message: AgentMessage }): JSX.Element {
   const isUser = message.role === 'user'
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in-up`}>
+      {/* Assistant avatar */}
+      {!isUser && (
+        <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center mr-3 mt-1">
+          <Bot className="w-4 h-4 text-primary" />
+        </div>
+      )}
       <div
-        className={`max-w-[85%] p-4 rounded-lg ${
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-secondary/80'
+        className={`${isUser ? 'max-w-[75%]' : 'max-w-[85%]'} px-4 py-3 ${
+          isUser
+            ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-2xl rounded-br-sm shadow-md shadow-primary/10'
+            : 'bg-card border border-border/40 rounded-2xl rounded-bl-sm shadow-sm'
         }`}
       >
         {message.isStreaming && !message.content ? (
-          <div className="typing-indicator flex gap-1">
-            <span className="w-2 h-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-2 h-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-2 h-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="typing-indicator flex gap-1.5 py-1">
+            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
         ) : isUser ? (
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
         ) : (
           <>
             {/* Thinking block - collapsible */}
@@ -705,59 +724,76 @@ function MessageBubble({ message }: { message: AgentMessage }): JSX.Element {
 }
 
 function EmptyState({ agentType, onSuggestionClick }: { agentType: string; onSuggestionClick: (suggestion: string) => void }): JSX.Element {
-  const suggestions: Record<string, string[]> = {
+  const suggestions: Record<string, { icon: JSX.Element; text: string }[]> = {
     developer: [
-      'Explain the architecture of this project',
-      'Find potential bugs in the codebase',
-      'Suggest refactoring opportunities',
-      'Help me implement a new feature'
+      { icon: <FileCode className="w-4 h-4" />, text: 'Explain the architecture of this project' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Find potential bugs in the codebase' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Suggest refactoring opportunities' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Help me implement a new feature' }
     ],
     'product-owner': [
-      'Create a user story for login functionality',
-      'Generate acceptance criteria for this feature',
-      'Help prioritize the backlog',
-      'Write a sprint goal'
+      { icon: <FileText className="w-4 h-4" />, text: 'Create a user story for login functionality' },
+      { icon: <FileText className="w-4 h-4" />, text: 'Generate acceptance criteria for this feature' },
+      { icon: <FileText className="w-4 h-4" />, text: 'Help prioritize the backlog' },
+      { icon: <FileText className="w-4 h-4" />, text: 'Write a sprint goal' }
     ],
     tester: [
-      'Generate test cases for the auth module',
-      'Create e2e test scenarios',
-      'Identify edge cases to test',
-      'Write a test plan'
+      { icon: <FileCode className="w-4 h-4" />, text: 'Generate test cases for the auth module' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Create e2e test scenarios' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Identify edge cases to test' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Write a test plan' }
     ],
     security: [
-      'Scan for security vulnerabilities',
-      'Review authentication implementation',
-      'Check for OWASP Top 10 issues',
-      'Audit npm dependencies'
+      { icon: <FileCode className="w-4 h-4" />, text: 'Scan for security vulnerabilities' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Review authentication implementation' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Check for OWASP Top 10 issues' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Audit npm dependencies' }
     ],
     devops: [
-      'Create a GitHub Actions workflow',
-      'Generate a Dockerfile',
-      'Set up a CI/CD pipeline',
-      'Create infrastructure with Terraform'
+      { icon: <FileCode className="w-4 h-4" />, text: 'Create a GitHub Actions workflow' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Generate a Dockerfile' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Set up a CI/CD pipeline' },
+      { icon: <FileCode className="w-4 h-4" />, text: 'Create infrastructure with Terraform' }
     ],
     documentation: [
-      'Generate API documentation',
-      'Create a README for this project',
-      'Document the deployment process',
-      'Write inline code comments'
+      { icon: <FileText className="w-4 h-4" />, text: 'Generate API documentation' },
+      { icon: <FileText className="w-4 h-4" />, text: 'Create a README for this project' },
+      { icon: <FileText className="w-4 h-4" />, text: 'Document the deployment process' },
+      { icon: <FileText className="w-4 h-4" />, text: 'Write inline code comments' }
     ]
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center p-8">
-      <h3 className="text-lg font-medium mb-2">Start a conversation</h3>
-      <p className="text-muted-foreground mb-6">
+    <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-gradient-to-b from-transparent via-transparent to-secondary/10">
+      {/* Hero icon */}
+      <div className="w-16 h-16 mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center shadow-lg shadow-primary/10">
+        <Sparkles className="w-8 h-8 text-primary" />
+      </div>
+
+      {/* Gradient headline */}
+      <h3 className="text-2xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent mb-2">
+        How can I help you today?
+      </h3>
+      <p className="text-muted-foreground mb-8 max-w-md">
         Ask {AGENT_NAMES[agentType]} anything about your project
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-lg">
+
+      {/* Suggestion cards with hover effects */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-xl">
         {suggestions[agentType]?.map((suggestion, i) => (
           <button
             key={i}
-            onClick={() => onSuggestionClick(suggestion)}
-            className="p-3 text-sm text-left bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
+            onClick={() => onSuggestionClick(suggestion.text)}
+            className="group p-4 text-sm text-left bg-card/50 hover:bg-card border border-border/40 hover:border-primary/30 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
           >
-            {suggestion}
+            <div className="flex items-start gap-3">
+              <span className="text-primary group-hover:scale-110 transition-transform mt-0.5">
+                {suggestion.icon}
+              </span>
+              <span className="text-foreground/80 group-hover:text-foreground transition-colors">
+                {suggestion.text}
+              </span>
+            </div>
           </button>
         ))}
       </div>

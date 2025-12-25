@@ -53,6 +53,11 @@ interface AppState {
   setShowSessionHistory: (show: boolean) => void
   showTutorial: boolean
   setShowTutorial: (show: boolean) => void
+
+  // Command Palette
+  showCommandPalette: boolean
+  setShowCommandPalette: (show: boolean) => void
+  toggleCommandPalette: () => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -139,5 +144,10 @@ export const useAppStore = create<AppState>((set) => ({
   showSessionHistory: false,
   setShowSessionHistory: (show) => set({ showSessionHistory: show }),
   showTutorial: false,
-  setShowTutorial: (show) => set({ showTutorial: show })
+  setShowTutorial: (show) => set({ showTutorial: show }),
+
+  // Command Palette
+  showCommandPalette: false,
+  setShowCommandPalette: (show) => set({ showCommandPalette: show }),
+  toggleCommandPalette: () => set((state) => ({ showCommandPalette: !state.showCommandPalette }))
 }))

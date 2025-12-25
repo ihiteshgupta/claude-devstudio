@@ -15,7 +15,7 @@ interface ShortcutConfig {
 const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
 
 export function useKeyboardShortcuts(): void {
-  const { currentProject, setViewMode, viewMode, setShowTutorial } = useAppStore()
+  const { currentProject, setViewMode, setShowTutorial, toggleCommandPalette, toggleSidebar, clearMessages } = useAppStore()
 
   const handleShortcut = useCallback(
     (e: KeyboardEvent) => {
@@ -30,6 +30,33 @@ export function useKeyboardShortcuts(): void {
         target.isContentEditable
 
       const shortcuts: ShortcutConfig[] = [
+        // Command palette (highest priority)
+        {
+          key: 'k',
+          ctrl: !isMac,
+          meta: isMac,
+          action: () => toggleCommandPalette(),
+          description: 'Open command palette'
+        },
+        // Toggle sidebar
+        {
+          key: 'b',
+          ctrl: !isMac,
+          meta: isMac,
+          action: () => toggleSidebar(),
+          description: 'Toggle sidebar'
+        },
+        // New chat
+        {
+          key: 'n',
+          ctrl: !isMac,
+          meta: isMac,
+          action: () => {
+            clearMessages()
+            if (currentProject) setViewMode('chat')
+          },
+          description: 'New chat'
+        },
         // Navigation shortcuts (work even when typing)
         {
           key: '1',
@@ -107,14 +134,12 @@ export function useKeyboardShortcuts(): void {
       // Check each shortcut
       for (const shortcut of shortcuts) {
         const ctrlMatch = shortcut.ctrl ? cmdOrCtrl : !cmdOrCtrl || !shortcut.meta
-        const metaMatch = shortcut.meta ? e.metaKey : true
         const shiftMatch = shortcut.shift ? e.shiftKey : !e.shiftKey
         const altMatch = shortcut.alt ? e.altKey : !e.altKey
 
         if (
           e.key === shortcut.key &&
           ctrlMatch &&
-          (shortcut.meta ? e.metaKey : true) &&
           shiftMatch &&
           altMatch
         ) {
@@ -134,7 +159,7 @@ export function useKeyboardShortcuts(): void {
         }
       }
     },
-    [currentProject, setViewMode, setShowTutorial]
+    [currentProject, setViewMode, setShowTutorial, toggleCommandPalette, toggleSidebar, clearMessages]
   )
 
   useEffect(() => {
@@ -145,6 +170,9 @@ export function useKeyboardShortcuts(): void {
 
 // Export shortcut descriptions for help menu
 export const KEYBOARD_SHORTCUTS = [
+  { keys: isMac ? '⌘K' : 'Ctrl+K', description: 'Command Palette' },
+  { keys: isMac ? '⌘N' : 'Ctrl+N', description: 'New Chat' },
+  { keys: isMac ? '⌘B' : 'Ctrl+B', description: 'Toggle Sidebar' },
   { keys: isMac ? '⌘1' : 'Ctrl+1', description: 'Dashboard' },
   { keys: isMac ? '⌘2' : 'Ctrl+2', description: 'Chat' },
   { keys: isMac ? '⌘3' : 'Ctrl+3', description: 'Stories' },
@@ -153,7 +181,7 @@ export const KEYBOARD_SHORTCUTS = [
   { keys: isMac ? '⌘6' : 'Ctrl+6', description: 'Task Queue' },
   { keys: isMac ? '⌘7' : 'Ctrl+7', description: 'Git' },
   { keys: isMac ? '⌘8' : 'Ctrl+8', description: 'Workflows' },
-  { keys: 'Esc', description: 'Close modal' },
+  { keys: 'Esc', description: 'Close modal / Cancel' },
   { keys: 'Enter', description: 'Send message (in chat)' },
   { keys: 'Shift+Enter', description: 'New line (in chat)' },
   { keys: '?', description: 'Open tutorial' }
