@@ -41,20 +41,24 @@ const createMockElectronAPI = () => ({
     list: vi.fn(() => Promise.resolve([])),
     update: vi.fn(() => Promise.resolve()),
     delete: vi.fn(() => Promise.resolve()),
-    get: vi.fn(() => Promise.resolve(null))
+    get: vi.fn(() => Promise.resolve(null)),
+    generateFromPrompt: vi.fn(() => Promise.resolve({ title: '', description: '', acceptanceCriteria: '' }))
   },
   sprints: {
     create: vi.fn(() => Promise.resolve({ id: 'sprint-1' })),
     list: vi.fn(() => Promise.resolve([])),
     update: vi.fn(() => Promise.resolve()),
     delete: vi.fn(() => Promise.resolve()),
-    get: vi.fn(() => Promise.resolve(null))
+    get: vi.fn(() => Promise.resolve(null)),
+    addStory: vi.fn(() => Promise.resolve()),
+    removeStory: vi.fn(() => Promise.resolve())
   },
   testCases: {
     create: vi.fn(() => Promise.resolve({ id: 'test-1' })),
     list: vi.fn(() => Promise.resolve([])),
     update: vi.fn(() => Promise.resolve()),
-    delete: vi.fn(() => Promise.resolve())
+    delete: vi.fn(() => Promise.resolve()),
+    generateFromStory: vi.fn(() => Promise.resolve([]))
   },
   workflows: {
     create: vi.fn(() => Promise.resolve({ id: 'workflow-1' })),
@@ -96,7 +100,15 @@ const createMockElectronAPI = () => ({
     getLog: vi.fn(() => Promise.resolve([])),
     commit: vi.fn(() => Promise.resolve()),
     push: vi.fn(() => Promise.resolve()),
-    pull: vi.fn(() => Promise.resolve())
+    pull: vi.fn(() => Promise.resolve()),
+    // Extended git API methods
+    status: vi.fn(() => Promise.resolve({ isRepo: true, current: 'main', tracking: null, ahead: 0, behind: 0, staged: [], unstaged: [], untracked: [] })),
+    log: vi.fn(() => Promise.resolve([])),
+    branches: vi.fn(() => Promise.resolve([{ name: 'main', current: true, commit: 'abc123' }])),
+    diff: vi.fn(() => Promise.resolve('')),
+    stage: vi.fn(() => Promise.resolve()),
+    unstage: vi.fn(() => Promise.resolve()),
+    checkout: vi.fn(() => Promise.resolve())
   },
   window: {
     minimize: vi.fn(),
@@ -176,6 +188,26 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock scrollTo
 Element.prototype.scrollTo = vi.fn()
 Element.prototype.scrollIntoView = vi.fn()
+
+// Mock pointer capture methods (required by Radix UI)
+Element.prototype.hasPointerCapture = vi.fn(() => false)
+Element.prototype.setPointerCapture = vi.fn()
+Element.prototype.releasePointerCapture = vi.fn()
+
+// Mock getComputedStyle for animations
+const originalGetComputedStyle = window.getComputedStyle
+window.getComputedStyle = (el: Element, pseudoElt?: string | null) => {
+  const style = originalGetComputedStyle(el, pseudoElt)
+  return {
+    ...style,
+    getPropertyValue: (prop: string) => {
+      if (prop === 'animation-name' || prop === 'animation-duration') {
+        return 'none'
+      }
+      return style.getPropertyValue(prop)
+    }
+  } as CSSStyleDeclaration
+}
 
 // Reset mocks before each test
 beforeEach(() => {

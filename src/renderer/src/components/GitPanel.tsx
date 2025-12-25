@@ -147,8 +147,9 @@ export function GitPanel({ projectPath }: GitPanelProps): JSX.Element {
       const result = await window.electronAPI.git.pull(projectPath)
       if (!result.success) {
         setError(result.summary)
+      } else {
+        loadGitData()
       }
-      loadGitData()
     } catch {
       setError('Failed to pull')
     } finally {
@@ -165,8 +166,9 @@ export function GitPanel({ projectPath }: GitPanelProps): JSX.Element {
       const result = await window.electronAPI.git.push(projectPath)
       if (!result.success) {
         setError(result.summary)
+      } else {
+        loadGitData()
       }
-      loadGitData()
     } catch {
       setError('Failed to push')
     } finally {
@@ -243,8 +245,16 @@ export function GitPanel({ projectPath }: GitPanelProps): JSX.Element {
       <div className="flex flex-1 h-full bg-zinc-950 items-center justify-center">
         <div className="text-center">
           <FolderX className="w-12 h-12 mx-auto mb-4 text-zinc-600" />
-          <p className="text-zinc-400 mb-2">Not a Git Repository</p>
-          <p className="text-sm text-zinc-500">Initialize git in this project to use version control</p>
+          {isLoading ? (
+            <p className="text-zinc-500">Loading commits...</p>
+          ) : error ? (
+            <p className="text-red-400 mb-2">{error}</p>
+          ) : (
+            <>
+              <p className="text-zinc-400 mb-2">Not a Git Repository</p>
+              <p className="text-sm text-zinc-500">Initialize git in this project to use version control</p>
+            </>
+          )}
         </div>
       </div>
     )

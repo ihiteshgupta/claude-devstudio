@@ -23,6 +23,8 @@ export default defineConfig({
     ],
     exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
     globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/renderer/src/test/setup.ts'],
     testTimeout: 10000,
     hookTimeout: 10000,
     coverage: {

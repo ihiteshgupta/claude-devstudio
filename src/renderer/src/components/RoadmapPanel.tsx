@@ -201,6 +201,10 @@ export function RoadmapPanel({ projectPath }: RoadmapPanelProps): JSX.Element {
           item.id === id ? { ...item, status } : item
         )
       )
+      // Update selectedItem if it's the one being changed
+      if (selectedItem?.id === id) {
+        setSelectedItem((prev) => prev ? { ...prev, status } : null)
+      }
     } catch (error) {
       console.error('Failed to update status:', error)
       toast.error('Update Failed', 'Could not update status')

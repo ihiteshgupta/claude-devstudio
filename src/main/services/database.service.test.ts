@@ -4,24 +4,45 @@
  * Licensed under MIT License - see LICENSE file
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi, afterAll } from 'vitest'
 import Database from 'better-sqlite3'
 import type { AgentType } from '@shared/types'
-import { existsSync, rmSync } from 'fs'
+import { existsSync, rmSync, mkdirSync } from 'fs'
 import { join } from 'path'
-import { tmpdir } from 'os'
 
 // Use a fixed test directory - must be defined inline for vi.mock hoisting
 const TEST_DATA_PATH = '/tmp/claude-devstudio-test-db'
+const TEST_DB_DIR = join(TEST_DATA_PATH, 'claude-data')
 
-// Mock electron app module BEFORE importing the service
+// Use vi.hoisted to create directory before any module imports
+vi.hoisted(() => {
+  const fs = require('fs')
+  const path = require('path')
+  const testDbDir = path.join('/tmp/claude-devstudio-test-db', 'claude-data')
+  if (!fs.existsSync(testDbDir)) {
+    fs.mkdirSync(testDbDir, { recursive: true })
+  }
+})
+
+// Clean up after all tests
+afterAll(() => {
+  try {
+    if (existsSync(TEST_DATA_PATH)) {
+      rmSync(TEST_DATA_PATH, { recursive: true, force: true })
+    }
+  } catch {
+    // Ignore cleanup errors
+  }
+})
+
+// Mock electron app module
 vi.mock('electron', () => ({
   app: {
     getPath: () => '/tmp/claude-devstudio-test-db'
   }
 }))
 
-// Import after mocking
+// Import after mocking - singleton gets instantiated here
 import { DatabaseService, type UserStory, type TestCase, type Workflow } from './database.service'
 
 describe('DatabaseService', () => {
@@ -29,6 +50,10 @@ describe('DatabaseService', () => {
   let dbInstance: Database.Database
 
   beforeEach(() => {
+    // Ensure directory exists before creating database
+    if (!existsSync(TEST_DB_DIR)) {
+      mkdirSync(TEST_DB_DIR, { recursive: true })
+    }
     // Create a new database service for each test
     db = new DatabaseService()
     dbInstance = db.getDb()
@@ -40,12 +65,14 @@ describe('DatabaseService', () => {
     } catch {
       // Ignore close errors
     }
-    // Clean up test database files
+    // Clean up test database files (but keep directory for next test)
     try {
-      const dbDir = join(TEST_DATA_PATH, 'claude-data')
-      if (existsSync(dbDir)) {
-        rmSync(dbDir, { recursive: true, force: true })
-      }
+      const dbFile = join(TEST_DB_DIR, 'claude.db')
+      const dbWal = join(TEST_DB_DIR, 'claude.db-wal')
+      const dbShm = join(TEST_DB_DIR, 'claude.db-shm')
+      if (existsSync(dbFile)) rmSync(dbFile, { force: true })
+      if (existsSync(dbWal)) rmSync(dbWal, { force: true })
+      if (existsSync(dbShm)) rmSync(dbShm, { force: true })
     } catch {
       // Ignore cleanup errors
     }

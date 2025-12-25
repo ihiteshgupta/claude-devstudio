@@ -100,7 +100,7 @@ export function SubAgentPanel({ actions, isStreaming }: SubAgentPanelProps): JSX
           </span>
         )}
         <div className="ml-auto flex items-center gap-2 text-xs">
-          {runningCount > 0 && <span className="text-blue-400">{runningCount} running</span>}
+          {isStreaming && runningCount > 0 && <span className="text-blue-400">{runningCount} running</span>}
           <span className="text-green-400">{completedCount}</span>
           <span className="text-muted-foreground">/</span>
           <span className="text-muted-foreground">{actions.length}</span>
@@ -121,7 +121,7 @@ export function SubAgentPanel({ actions, isStreaming }: SubAgentPanelProps): JSX
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-secondary/50 transition-colors"
               >
                 {/* Expand arrow */}
-                {action.result && (
+                {action.result !== undefined && (
                   <ChevronRight
                     className={`w-3 h-3 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                   />
@@ -157,7 +157,7 @@ export function SubAgentPanel({ actions, isStreaming }: SubAgentPanelProps): JSX
               </button>
 
               {/* Expanded result */}
-              {isExpanded && action.result && (
+              {isExpanded && action.result !== undefined && (
                 <div className="px-3 pb-2">
                   <div className="bg-background/50 rounded p-2 text-xs font-mono text-muted-foreground max-h-32 overflow-y-auto whitespace-pre-wrap">
                     {action.result}

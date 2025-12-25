@@ -139,8 +139,8 @@ class ApprovalResolverService extends EventEmitter {
     taskId: string,
     outputData: TaskOutputData | null
   ): Promise<QualityAssessment> {
-    // Lazy load to avoid circular dependency
-    const { taskQueueService } = require('./task-queue.service')
+    // Lazy load to avoid circular dependency (using dynamic import for ESM compatibility)
+    const { taskQueueService } = await import('./task-queue.service')
     const task = taskQueueService.getTask(taskId)
     if (!task) {
       return {
