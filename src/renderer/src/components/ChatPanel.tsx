@@ -51,12 +51,15 @@ export function ChatPanel(): JSX.Element {
     setIsLoading,
     currentSessionId,
     setCurrentSessionId,
+    isCreatingSession,
+    setIsCreatingSession,
     sessions,
     setSessions,
     addSession,
     setMessages,
     showSessionHistory,
-    setShowSessionHistory
+    setShowSessionHistory,
+    setStreamCleanupCallback
   } = useAppStore()
   const toast = useToast()
 
@@ -135,12 +138,13 @@ export function ChatPanel(): JSX.Element {
     inputRef.current?.focus()
   }, [currentAgentType])
 
-  // Cleanup stream listener on unmount
+  // Cleanup stream listener on unmount and register with store
   useEffect(() => {
     return () => {
       streamCleanupRef.current?.()
+      setStreamCleanupCallback(null)
     }
-  }, [])
+  }, [setStreamCleanupCallback])
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || isLoading || !currentProject) return
@@ -149,9 +153,10 @@ export function ChatPanel(): JSX.Element {
     setInput('')
     setIsLoading(true)
 
-    // Create or get session
+    // Create or get session (with race condition prevention)
     let sessionId = currentSessionId
-    if (!sessionId) {
+    if (!sessionId && !isCreatingSession) {
+      setIsCreatingSession(true)
       try {
         const newSession = await window.electronAPI.sessions.create({
           projectId: currentProject.id,
@@ -163,7 +168,13 @@ export function ChatPanel(): JSX.Element {
       } catch (error) {
         console.error('Failed to create session:', error)
         toast.error('Session Error', 'Failed to create chat session')
+      } finally {
+        setIsCreatingSession(false)
       }
+    } else if (!sessionId && isCreatingSession) {
+      // Session is being created by another call, wait and retry
+      setIsLoading(false)
+      return
     }
 
     // Save user message to database
@@ -212,7 +223,7 @@ export function ChatPanel(): JSX.Element {
     let accumulatedTodos: Array<{ content: string; status: string; activeForm: string }> = []
 
     // Set up stream listener - handles structured JSON stream events
-    streamCleanupRef.current = window.electronAPI.claude.onStream(async (data) => {
+    const cleanup = window.electronAPI.claude.onStream(async (data) => {
       if (data.type === 'chunk' && data.content) {
         fullResponseContent += data.content
         appendMessageContent(assistantMessageId, data.content)
@@ -253,6 +264,7 @@ export function ChatPanel(): JSX.Element {
         setIsLoading(false)
         streamCleanupRef.current?.()
         streamCleanupRef.current = null
+        setStreamCleanupCallback(null)
       } else if (data.type === 'error') {
         updateMessage(assistantMessageId, {
           isStreaming: false,
@@ -261,8 +273,13 @@ export function ChatPanel(): JSX.Element {
         setIsLoading(false)
         streamCleanupRef.current?.()
         streamCleanupRef.current = null
+        setStreamCleanupCallback(null)
       }
     })
+
+    // Register cleanup with both ref and store (for agent switch cleanup)
+    streamCleanupRef.current = cleanup
+    setStreamCleanupCallback(cleanup)
 
     try {
       // Build message with file context if files are selected
@@ -288,7 +305,7 @@ export function ChatPanel(): JSX.Element {
       })
       setIsLoading(false)
     }
-  }, [input, isLoading, currentProject, currentAgentType, currentSessionId, addMessage, updateMessage, appendMessageContent, setIsLoading, setCurrentSessionId, addSession])
+  }, [input, isLoading, currentProject, currentAgentType, currentSessionId, isCreatingSession, addMessage, updateMessage, appendMessageContent, setIsLoading, setCurrentSessionId, setIsCreatingSession, addSession, setStreamCleanupCallback, selectedFiles, toast])
 
   const handleKeyDown = (e: React.KeyboardEvent): void => {
     if (e.key === 'Enter' && !e.shiftKey) {

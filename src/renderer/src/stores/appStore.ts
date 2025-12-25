@@ -19,13 +19,19 @@ interface AppState {
   // Sessions
   sessions: ChatSession[]
   currentSessionId: string | null
+  isCreatingSession: boolean
   setSessions: (sessions: ChatSession[]) => void
   setCurrentSessionId: (id: string | null) => void
+  setIsCreatingSession: (creating: boolean) => void
   addSession: (session: ChatSession) => void
 
   // Chat
   currentAgentType: AgentType
   setCurrentAgentType: (type: AgentType) => void
+
+  // Stream cleanup callback (set by ChatPanel)
+  streamCleanupCallback: (() => void) | null
+  setStreamCleanupCallback: (callback: (() => void) | null) => void
   messages: AgentMessage[]
   setMessages: (messages: AgentMessage[]) => void
   addMessage: (message: AgentMessage) => void
@@ -83,8 +89,10 @@ export const useAppStore = create<AppState>((set) => ({
   // Sessions
   sessions: [],
   currentSessionId: null,
+  isCreatingSession: false,
   setSessions: (sessions) => set({ sessions }),
   setCurrentSessionId: (id) => set({ currentSessionId: id }),
+  setIsCreatingSession: (creating) => set({ isCreatingSession: creating }),
   addSession: (session) =>
     set((state) => ({
       sessions: [session, ...state.sessions.filter((s) => s.id !== session.id)]
@@ -92,7 +100,15 @@ export const useAppStore = create<AppState>((set) => ({
 
   // Chat
   currentAgentType: 'developer',
-  setCurrentAgentType: (type) => set({ currentAgentType: type, messages: [], currentSessionId: null }),
+  setCurrentAgentType: (type) => set((state) => {
+    // Cancel any active stream before switching agents
+    state.streamCleanupCallback?.()
+    return { currentAgentType: type, messages: [], currentSessionId: null, streamCleanupCallback: null }
+  }),
+
+  // Stream cleanup callback
+  streamCleanupCallback: null,
+  setStreamCleanupCallback: (callback) => set({ streamCleanupCallback: callback }),
   messages: [],
   setMessages: (messages) => set({ messages }),
   addMessage: (message) =>

@@ -23,6 +23,7 @@ import { onboardingService, initOnboardingTables } from './services/onboarding.s
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
+let taskQueueListenerRegistered = false  // Flag to prevent duplicate event listeners
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -431,10 +432,13 @@ function setupIpcHandlers(): void {
   })
 
   ipcMain.handle(IPC_CHANNELS.TASK_QUEUE_START, async (_, { projectId, projectPath }) => {
-    // Forward events to renderer
-    taskQueueService.on('task-event', (event) => {
-      mainWindow?.webContents.send(IPC_CHANNELS.TASK_QUEUE_EVENT, event)
-    })
+    // Forward events to renderer (register only once to prevent memory leak)
+    if (!taskQueueListenerRegistered) {
+      taskQueueService.on('task-event', (event) => {
+        mainWindow?.webContents.send(IPC_CHANNELS.TASK_QUEUE_EVENT, event)
+      })
+      taskQueueListenerRegistered = true
+    }
     return taskQueueService.startQueue(projectId, { projectPath })
   })
 

@@ -91,6 +91,18 @@ export function WelcomeScreen(): JSX.Element {
     try {
       const project = await window.electronAPI.projects.open(projectId)
       if (project) {
+        // Check if project has any onboarding plan
+        try {
+          const pendingPlan = await window.electronAPI.onboarding.getPlan(projectId)
+          if (pendingPlan && pendingPlan.status === 'pending_approval') {
+            // Show onboarding wizard to complete the pending plan
+            setOnboardingProject(project)
+            setShowOnboarding(true)
+            return
+          }
+        } catch {
+          // No plan exists, just open the project
+        }
         setCurrentProject(project)
       }
     } catch (error) {

@@ -40,6 +40,7 @@ class TaskQueueService extends EventEmitter {
   private isPaused = false
   private currentTaskId: string | null = null
   private projectPath: string | null = null
+  private startLock = false  // Mutex lock for preventing concurrent start calls
 
   /**
    * Generate unique ID
@@ -406,25 +407,31 @@ class TaskQueueService extends EventEmitter {
   }
 
   /**
-   * Start the execution loop
+   * Start the execution loop (with mutex lock to prevent race conditions)
    */
   async startQueue(projectId: string, options: TaskQueueOptions): Promise<void> {
+    // Use mutex lock to prevent race condition between check and set
+    if (this.startLock) {
+      throw new Error('Queue start operation is already in progress')
+    }
     if (this.isRunning) {
       throw new Error('Queue is already running')
     }
 
-    this.isRunning = true
-    this.isPaused = false
-    this.projectPath = options.projectPath
-
-    this.emit('queue-started', projectId)
-
+    this.startLock = true
     try {
+      this.isRunning = true
+      this.isPaused = false
+      this.projectPath = options.projectPath
+
+      this.emit('queue-started', projectId)
+
       await this.runExecutionLoop(projectId)
     } finally {
       this.isRunning = false
       this.currentTaskId = null
       this.projectPath = null
+      this.startLock = false
     }
   }
 
