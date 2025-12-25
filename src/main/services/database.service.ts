@@ -194,6 +194,13 @@ class DatabaseService {
       // Column already exists, ignore
     }
 
+    // Add story_type to user_stories if not exists
+    try {
+      this.db.exec(`ALTER TABLE user_stories ADD COLUMN story_type TEXT DEFAULT 'feature'`)
+    } catch {
+      // Column already exists, ignore
+    }
+
     // Roadmap items table (Epics, Features, Milestones)
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS roadmap_items (
@@ -317,6 +324,13 @@ class DatabaseService {
     }
     try {
       this.db.exec(`ALTER TABLE approval_gates ADD COLUMN review_data TEXT`)
+    } catch {
+      // Column already exists, ignore
+    }
+
+    // Add updated_at to task_queue if not exists
+    try {
+      this.db.exec(`ALTER TABLE task_queue ADD COLUMN updated_at TEXT`)
     } catch {
       // Column already exists, ignore
     }

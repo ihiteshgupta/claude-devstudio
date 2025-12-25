@@ -9,7 +9,7 @@ import { EventEmitter } from 'events'
 import { databaseService } from './database.service'
 import { actionParserService, ExtractedAction, ActionType } from './action-parser.service'
 import { taskQueueService } from './task-queue.service'
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'crypto'
 import type { AutonomyLevel } from '@shared/types'
 
 export interface ExecutionResult {
@@ -269,7 +269,7 @@ class ChatBridgeService extends EventEmitter {
   private createStory(action: ExtractedAction, projectId: string): ExecutionResult {
     const db = databaseService.getDb()
     const now = new Date().toISOString()
-    const id = uuidv4()
+    const id = randomUUID()
 
     const metadata = action.metadata as {
       priority?: string
@@ -367,7 +367,7 @@ class ChatBridgeService extends EventEmitter {
   private createRoadmapItem(action: ExtractedAction, projectId: string): ExecutionResult {
     const db = databaseService.getDb()
     const now = new Date().toISOString()
-    const id = uuidv4()
+    const id = randomUUID()
 
     const metadata = action.metadata as {
       itemType?: string
@@ -414,7 +414,7 @@ class ChatBridgeService extends EventEmitter {
   private createTest(action: ExtractedAction, projectId: string): ExecutionResult {
     const db = databaseService.getDb()
     const now = new Date().toISOString()
-    const id = uuidv4()
+    const id = randomUUID()
 
     const metadata = action.metadata as {
       testType?: string

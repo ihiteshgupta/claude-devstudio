@@ -8,7 +8,7 @@
 
 import { EventEmitter } from 'events'
 import { databaseService } from './database.service'
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'crypto'
 
 export interface AgentMemory {
   projectId: string
@@ -88,7 +88,7 @@ class AgentMemoryService extends EventEmitter {
    * Start a new agent session
    */
   startSession(projectId: string, agentType: string): string {
-    const sessionId = `agent_session_${Date.now()}_${uuidv4().substring(0, 8)}`
+    const sessionId = `agent_session_${Date.now()}_${randomUUID().substring(0, 8)}`
 
     const memory: AgentMemory = {
       projectId,
@@ -175,7 +175,7 @@ class AgentMemoryService extends EventEmitter {
     }
 
     const fullDecision: Decision = {
-      id: uuidv4(),
+      id: randomUUID(),
       ...decision,
       timestamp: new Date().toISOString()
     }
@@ -400,7 +400,7 @@ class AgentMemoryService extends EventEmitter {
     expiresAt?: string
   ): void {
     const db = databaseService.getDb()
-    const id = uuidv4()
+    const id = randomUUID()
     const createdAt = new Date().toISOString()
 
     databaseService.withWriteLockRetry(() => {
