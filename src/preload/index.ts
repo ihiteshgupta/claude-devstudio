@@ -944,6 +944,67 @@ const api = {
         ipcRenderer.removeListener(IPC_CHANNELS.SECURITY_EVENT, handler)
       }
     }
+  },
+
+  // Onboarding API
+  onboarding: {
+    init: (config: {
+      projectPath: string
+      projectName: string
+      projectId: string
+    }): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ONBOARDING_INIT, config)
+    },
+    analyze: (projectPath: string): Promise<{
+      projectType: string
+      language: string
+      frameworks: string[]
+      hasTests: boolean
+      hasCICD: boolean
+      hasDocker: boolean
+      structure: {
+        srcDirs: string[]
+        testDirs: string[]
+        configFiles: string[]
+        entryPoints: string[]
+        totalFiles: number
+        totalLines: number
+      }
+      dependencies: string[]
+      suggestedAgents: string[]
+    }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ONBOARDING_ANALYZE, projectPath)
+    },
+    generatePlan: (config: {
+      projectPath: string
+      projectName: string
+      projectId: string
+    }, analysis: unknown): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ONBOARDING_GENERATE_PLAN, { config, analysis })
+    },
+    getPlan: (projectId: string): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ONBOARDING_GET_PLAN, projectId)
+    },
+    updatePlan: (planId: string, feedback: string, acceptedRoadmapItems: string[], acceptedTasks: string[]): Promise<unknown> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ONBOARDING_UPDATE_PLAN, {
+        planId,
+        feedback,
+        acceptedRoadmapItems,
+        acceptedTasks
+      })
+    },
+    applyPlan: (planId: string): Promise<{ roadmapItemsCreated: number; tasksCreated: number }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS.ONBOARDING_APPLY_PLAN, planId)
+    },
+    onEvent: (callback: (event: { type: string; data: unknown }) => void): (() => void) => {
+      const handler = (_event: IpcRendererEvent, data: Parameters<typeof callback>[0]): void => {
+        callback(data)
+      }
+      ipcRenderer.on(IPC_CHANNELS.ONBOARDING_EVENT, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.ONBOARDING_EVENT, handler)
+      }
+    }
   }
 }
 

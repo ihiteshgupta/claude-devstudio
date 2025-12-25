@@ -1,45 +1,57 @@
 import { useState } from 'react'
 import type { SubAgentAction } from '@shared/types'
+import {
+  Search,
+  ClipboardList,
+  Zap,
+  ChevronRight,
+  Check,
+  X
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 interface SubAgentPanelProps {
   actions: SubAgentAction[]
   isStreaming?: boolean
 }
 
-const STATUS_CONFIG = {
+const STATUS_CONFIG: Record<string, { Icon: LucideIcon | null; color: string; bg: string; borderColor: string }> = {
   running: {
-    icon: '...',
+    Icon: null,
     color: 'text-blue-400',
     bg: 'bg-blue-400/10',
     borderColor: 'border-blue-400/30'
   },
   completed: {
-    icon: '✓',
+    Icon: Check,
     color: 'text-green-400',
     bg: 'bg-green-400/10',
     borderColor: 'border-green-400/30'
   },
   failed: {
-    icon: '✗',
+    Icon: X,
     color: 'text-red-400',
     bg: 'bg-red-400/10',
     borderColor: 'border-red-400/30'
   }
 }
 
-const AGENT_TYPE_CONFIG = {
+const AGENT_TYPE_CONFIG: Record<string, { Icon: LucideIcon; color: string; label: string; description: string }> = {
   Explore: {
-    icon: '🔍',
+    Icon: Search,
+    color: 'text-blue-400',
     label: 'Exploring',
     description: 'Searching codebase'
   },
   Plan: {
-    icon: '📋',
+    Icon: ClipboardList,
+    color: 'text-green-400',
     label: 'Planning',
     description: 'Designing approach'
   },
   Task: {
-    icon: '⚡',
+    Icon: Zap,
+    color: 'text-yellow-400',
     label: 'Task',
     description: 'Running sub-agent'
   }
@@ -69,14 +81,7 @@ export function SubAgentPanel({ actions, isStreaming }: SubAgentPanelProps): JSX
     <div className="mb-3 border border-border/50 rounded-lg overflow-hidden bg-secondary/30">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 text-sm border-b border-border/30">
-        <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 10V3L4 14h7v7l9-11h-7z"
-          />
-        </svg>
+        <Zap className="w-4 h-4 text-cyan-400" />
         <span className="font-medium text-foreground">Sub-Agents</span>
         {isStreaming && runningCount > 0 && (
           <span className="flex gap-1 ml-1">
@@ -117,23 +122,13 @@ export function SubAgentPanel({ actions, isStreaming }: SubAgentPanelProps): JSX
               >
                 {/* Expand arrow */}
                 {action.result && (
-                  <svg
+                  <ChevronRight
                     className={`w-3 h-3 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                  />
                 )}
 
                 {/* Agent type icon */}
-                <span className="text-base">{typeConfig.icon}</span>
+                <typeConfig.Icon className={`w-4 h-4 ${typeConfig.color}`} />
 
                 {/* Description */}
                 <span className="flex-1 text-left truncate">
@@ -155,9 +150,9 @@ export function SubAgentPanel({ actions, isStreaming }: SubAgentPanelProps): JSX
                         style={{ animationDelay: '300ms' }}
                       />
                     </span>
-                  ) : (
-                    statusConfig.icon
-                  )}
+                  ) : statusConfig.Icon ? (
+                    <statusConfig.Icon className="w-4 h-4" />
+                  ) : null}
                 </span>
               </button>
 

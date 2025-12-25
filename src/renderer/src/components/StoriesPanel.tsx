@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '../stores/appStore'
 import type { UserStory, TestCase } from '@shared/types'
+import { TestTube, FileText } from 'lucide-react'
 
 interface StoriesPanelProps {
   projectPath: string
@@ -250,7 +251,7 @@ export function StoriesPanel({ projectPath }: StoriesPanelProps): JSX.Element {
                     'Generating...'
                   ) : (
                     <>
-                      <span>🧪</span>
+                      <TestTube className="w-4 h-4" />
                       Generate Test Cases
                     </>
                   )}
@@ -311,7 +312,7 @@ export function StoriesPanel({ projectPath }: StoriesPanelProps): JSX.Element {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <span className="text-4xl mb-4 block">📝</span>
+              <FileText className="w-12 h-12 mx-auto mb-4 text-zinc-600" />
               <p className="text-zinc-500">Select a user story to view details</p>
             </div>
           </div>

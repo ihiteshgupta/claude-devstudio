@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { useAppStore } from '../stores/appStore'
 import type { Sprint, UserStory } from '@shared/types'
+import { ClipboardList, X } from 'lucide-react'
 
 interface SprintPanelProps {
   projectPath: string
@@ -343,9 +344,9 @@ export function SprintPanel({ projectPath }: SprintPanelProps): JSX.Element {
                                             e.stopPropagation()
                                             handleRemoveStory(story.id)
                                           }}
-                                          className="text-zinc-500 hover:text-red-400 text-xs"
+                                          className="text-zinc-500 hover:text-red-400 p-0.5 rounded hover:bg-zinc-700"
                                         >
-                                          ✕
+                                          <X className="w-3 h-3" />
                                         </button>
                                       </div>
                                       {story.description && (
@@ -407,7 +408,7 @@ export function SprintPanel({ projectPath }: SprintPanelProps): JSX.Element {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-4xl mb-4">📋</div>
+              <ClipboardList className="w-12 h-12 mx-auto mb-4 text-zinc-600" />
               <p className="text-zinc-400 mb-2">Select a sprint to view the board</p>
               <p className="text-sm text-zinc-500">or create a new sprint to get started</p>
             </div>

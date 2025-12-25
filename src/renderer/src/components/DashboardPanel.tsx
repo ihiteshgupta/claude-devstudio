@@ -1,6 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '../stores/appStore'
-import type { UserStory, Sprint, ChatSession, TestCase } from '@shared/types'
+import type { UserStory, Sprint, ChatSession, TestCase, AgentType } from '@shared/types'
+import {
+  FileText,
+  Star,
+  TestTube,
+  CalendarDays,
+  MessageSquare,
+  Bot,
+  RefreshCw,
+  Zap,
+  type LucideIcon
+} from 'lucide-react'
+import { AgentIcon, AGENT_ICONS, AGENT_LABELS } from '../utils/icons'
 
 interface DashboardPanelProps {
   projectPath: string
@@ -20,24 +32,6 @@ const STATUS_LABELS: Record<string, string> = {
   'in-progress': 'In Progress',
   review: 'Review',
   done: 'Done'
-}
-
-const AGENT_ICONS: Record<string, string> = {
-  developer: '👨‍💻',
-  'product-owner': '📋',
-  tester: '🧪',
-  security: '🔒',
-  devops: '🚀',
-  documentation: '📚'
-}
-
-const AGENT_LABELS: Record<string, string> = {
-  developer: 'Developer',
-  'product-owner': 'Product Owner',
-  tester: 'Tester',
-  security: 'Security',
-  devops: 'DevOps',
-  documentation: 'Documentation'
 }
 
 export function DashboardPanel({ projectPath }: DashboardPanelProps): JSX.Element {
@@ -138,14 +132,7 @@ export function DashboardPanel({ projectPath }: DashboardPanelProps): JSX.Elemen
             onClick={loadData}
             className="flex items-center gap-2 px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
+            <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
         </div>
@@ -153,25 +140,29 @@ export function DashboardPanel({ projectPath }: DashboardPanelProps): JSX.Elemen
         {/* Stat Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatCard
-            icon="📝"
+            icon={FileText}
+            iconColor="text-blue-400"
             title="Total Stories"
             value={stories.length}
             subtitle={`${storyCountByStatus.done} completed`}
           />
           <StatCard
-            icon="🏃"
+            icon={Zap}
+            iconColor="text-yellow-400"
             title="Active Sprint"
             value={activeSprint?.name || 'None'}
             subtitle={activeSprint ? `${daysRemaining} days left` : 'No active sprint'}
           />
           <StatCard
-            icon="⭐"
+            icon={Star}
+            iconColor="text-amber-400"
             title="Story Points"
             value={totalStoryPoints}
             subtitle={`${completedStoryPoints} completed`}
           />
           <StatCard
-            icon="🧪"
+            icon={TestTube}
+            iconColor="text-purple-400"
             title="Test Cases"
             value={testCases.length}
             subtitle={`${testCases.filter((t) => t.status === 'passed').length} passed`}
@@ -277,7 +268,7 @@ export function DashboardPanel({ projectPath }: DashboardPanelProps): JSX.Elemen
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-zinc-500">
-                <span className="text-3xl mb-2">📅</span>
+                <CalendarDays className="w-8 h-8 mb-2 text-zinc-600" />
                 <p>No active sprint</p>
                 <p className="text-sm">Create a sprint to track progress</p>
               </div>
@@ -295,10 +286,10 @@ export function DashboardPanel({ projectPath }: DashboardPanelProps): JSX.Elemen
                     key={session.id}
                     className="flex items-center gap-3 p-2 rounded hover:bg-zinc-800/50"
                   >
-                    <span className="text-xl">{AGENT_ICONS[session.agentType] || '💬'}</span>
+                    <AgentIcon agentType={session.agentType as AgentType} size="md" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white truncate">
-                        {AGENT_LABELS[session.agentType]} chat
+                        {AGENT_LABELS[session.agentType as AgentType]} chat
                       </p>
                       <p className="text-xs text-zinc-500">{formatRelativeTime(session.updatedAt)}</p>
                     </div>
@@ -307,7 +298,7 @@ export function DashboardPanel({ projectPath }: DashboardPanelProps): JSX.Elemen
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-zinc-500">
-                <span className="text-3xl mb-2">💬</span>
+                <MessageSquare className="w-8 h-8 mb-2 text-zinc-600" />
                 <p>No recent activity</p>
                 <p className="text-sm">Start a chat with an agent</p>
               </div>
@@ -324,11 +315,13 @@ export function DashboardPanel({ projectPath }: DashboardPanelProps): JSX.Elemen
                   .sort(([, a], [, b]) => b - a)
                   .map(([agentType, count]) => (
                     <div key={agentType} className="flex items-center gap-3">
-                      <span className="text-xl w-8">{AGENT_ICONS[agentType] || '💬'}</span>
+                      <div className="w-8 flex justify-center">
+                        <AgentIcon agentType={agentType as AgentType} size="md" />
+                      </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm text-zinc-300">
-                            {AGENT_LABELS[agentType] || agentType}
+                            {AGENT_LABELS[agentType as AgentType] || agentType}
                           </span>
                           <span className="text-sm text-white font-medium">{count}</span>
                         </div>
@@ -346,7 +339,7 @@ export function DashboardPanel({ projectPath }: DashboardPanelProps): JSX.Elemen
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-zinc-500">
-                <span className="text-3xl mb-2">🤖</span>
+                <Bot className="w-8 h-8 mb-2 text-zinc-600" />
                 <p>No agent sessions yet</p>
                 <p className="text-sm">Chat with agents to see activity</p>
               </div>
@@ -395,12 +388,14 @@ export function DashboardPanel({ projectPath }: DashboardPanelProps): JSX.Elemen
 
 // StatCard Component
 function StatCard({
-  icon,
+  icon: Icon,
+  iconColor,
   title,
   value,
   subtitle
 }: {
-  icon: string
+  icon: LucideIcon
+  iconColor?: string
   title: string
   value: string | number
   subtitle: string
@@ -408,7 +403,7 @@ function StatCard({
   return (
     <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-4">
       <div className="flex items-center gap-3 mb-2">
-        <span className="text-2xl">{icon}</span>
+        <Icon className={`w-6 h-6 ${iconColor || 'text-zinc-400'}`} />
         <span className="text-sm text-zinc-400">{title}</span>
       </div>
       <p className="text-2xl font-bold text-white mb-1">{value}</p>

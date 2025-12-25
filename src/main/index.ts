@@ -19,6 +19,7 @@ import { sprintPlannerService } from './services/sprint-planner.service'
 import { bugReportService } from './services/bug-report.service'
 import { validationService } from './services/validation.service'
 import { securityScannerService } from './services/security-scanner.service'
+import { onboardingService, initOnboardingTables } from './services/onboarding.service'
 import { IPC_CHANNELS } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -868,6 +869,43 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.SECURITY_SUMMARY, async (_, projectId) => {
     return securityScannerService.getSummary(projectId)
+  })
+
+  // ============ Onboarding Handlers ============
+
+  // Initialize onboarding tables
+  initOnboardingTables()
+
+  // Forward onboarding events to renderer
+  const onboardingEvents = ['analysis:start', 'analysis:complete', 'analysis:error', 'plan:generating', 'plan:generated', 'plan:error', 'plan:applied']
+  onboardingEvents.forEach(event => {
+    onboardingService.on(event, (data) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.ONBOARDING_EVENT, { type: event, data })
+    })
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ONBOARDING_INIT, async (_, config) => {
+    return onboardingService.initProject(config)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ONBOARDING_ANALYZE, async (_, projectPath) => {
+    return onboardingService.analyzeProject(projectPath)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ONBOARDING_GENERATE_PLAN, async (_, { config, analysis }) => {
+    return onboardingService.generatePlan(config, analysis)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ONBOARDING_GET_PLAN, async (_, projectId) => {
+    return onboardingService.getPendingPlan(projectId)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ONBOARDING_UPDATE_PLAN, async (_, { planId, feedback, acceptedRoadmapItems, acceptedTasks }) => {
+    return onboardingService.updatePlanWithFeedback(planId, feedback, acceptedRoadmapItems, acceptedTasks)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.ONBOARDING_APPLY_PLAN, async (_, planId) => {
+    return onboardingService.applyPlan(planId)
   })
 }
 

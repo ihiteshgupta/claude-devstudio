@@ -1,11 +1,28 @@
 import { useState } from 'react'
 import { useAppStore } from '../stores/appStore'
+import OnboardingWizard from './OnboardingWizard'
+import { Project } from '@shared/types'
+import {
+  FolderOpen,
+  Sparkles,
+  HelpCircle,
+  Code,
+  ClipboardList,
+  TestTube,
+  Shield,
+  Rocket,
+  BookOpen,
+  Folder,
+  Cpu
+} from 'lucide-react'
 
 export function WelcomeScreen(): JSX.Element {
   const { addProject, setCurrentProject, projects, setShowTutorial } = useAppStore()
   const [isLoading, setIsLoading] = useState(false)
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
+  const [onboardingProject, setOnboardingProject] = useState<Project | null>(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const handleOpenProject = async (): Promise<void> => {
     setIsLoading(true)
@@ -14,7 +31,9 @@ export function WelcomeScreen(): JSX.Element {
       if (folderPath) {
         const project = await window.electronAPI.projects.create({ path: folderPath })
         addProject(project)
-        setCurrentProject(project)
+        // Show onboarding wizard for new projects
+        setOnboardingProject(project)
+        setShowOnboarding(true)
       }
     } catch (error) {
       console.error('Failed to open project:', error)
@@ -37,7 +56,9 @@ export function WelcomeScreen(): JSX.Element {
         if (projectPath) {
           const project = await window.electronAPI.projects.create({ path: projectPath })
           addProject(project)
-          setCurrentProject(project)
+          // Show onboarding wizard for new projects
+          setOnboardingProject(project)
+          setShowOnboarding(true)
         }
       }
     } catch (error) {
@@ -47,6 +68,23 @@ export function WelcomeScreen(): JSX.Element {
       setShowNewProjectModal(false)
       setNewProjectName('')
     }
+  }
+
+  const handleOnboardingComplete = (): void => {
+    if (onboardingProject) {
+      setCurrentProject(onboardingProject)
+    }
+    setShowOnboarding(false)
+    setOnboardingProject(null)
+  }
+
+  const handleOnboardingCancel = (): void => {
+    // Still set the project, just skip onboarding
+    if (onboardingProject) {
+      setCurrentProject(onboardingProject)
+    }
+    setShowOnboarding(false)
+    setOnboardingProject(null)
   }
 
   const handleSelectRecentProject = async (projectId: string): Promise<void> => {
@@ -65,10 +103,10 @@ export function WelcomeScreen(): JSX.Element {
       <div className="max-w-2xl w-full">
         {/* Logo and title */}
         <div className="text-center mb-12">
-          <div className="text-6xl mb-4">
-            <svg className="w-16 h-16 mx-auto text-[#D97757]" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.5 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-11 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 14a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-11 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
-            </svg>
+          <div className="mb-4 flex justify-center">
+            <div className="p-4 bg-gradient-to-br from-violet-500/20 to-orange-500/20 rounded-2xl">
+              <Cpu className="w-16 h-16 text-[#D97757]" />
+            </div>
           </div>
           <h1 className="text-3xl font-bold mb-2">Claude DevStudio</h1>
           <p className="text-muted-foreground">
@@ -83,7 +121,9 @@ export function WelcomeScreen(): JSX.Element {
             disabled={isLoading}
             className="p-6 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-card/80 transition-all group text-left"
           >
-            <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">📁</div>
+            <div className="mb-3 group-hover:scale-110 transition-transform">
+              <FolderOpen className="w-8 h-8 text-violet-500" />
+            </div>
             <h3 className="font-semibold mb-1">Open Project</h3>
             <p className="text-sm text-muted-foreground">
               Select a folder to start working with AI agents
@@ -95,7 +135,9 @@ export function WelcomeScreen(): JSX.Element {
             disabled={isLoading}
             className="p-6 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-card/80 transition-all group text-left"
           >
-            <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">✨</div>
+            <div className="mb-3 group-hover:scale-110 transition-transform">
+              <Sparkles className="w-8 h-8 text-amber-500" />
+            </div>
             <h3 className="font-semibold mb-1">New Project</h3>
             <p className="text-sm text-muted-foreground">
               Create a new project folder
@@ -109,9 +151,7 @@ export function WelcomeScreen(): JSX.Element {
             onClick={() => setShowTutorial(true)}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <HelpCircle className="w-4 h-4" />
             New here? View the Getting Started Guide
             <kbd className="ml-1 bg-secondary px-1.5 py-0.5 rounded text-xs">?</kbd>
           </button>
@@ -167,7 +207,7 @@ export function WelcomeScreen(): JSX.Element {
                   onClick={() => handleSelectRecentProject(project.id)}
                   className="w-full flex items-center gap-3 p-3 bg-card border border-border rounded-lg hover:border-primary/50 hover:bg-card/80 transition-all text-left"
                 >
-                  <span className="text-xl">📁</span>
+                  <Folder className="w-5 h-5 text-violet-400" />
                   <div className="min-w-0 flex-1">
                     <div className="font-medium truncate">{project.name}</div>
                     <div className="text-xs text-muted-foreground truncate">{project.path}</div>
@@ -188,21 +228,34 @@ export function WelcomeScreen(): JSX.Element {
           </h2>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
             {[
-              { icon: '👨‍💻', name: 'Developer' },
-              { icon: '📋', name: 'Product Owner' },
-              { icon: '🧪', name: 'Tester' },
-              { icon: '🔒', name: 'Security' },
-              { icon: '🚀', name: 'DevOps' },
-              { icon: '📚', name: 'Docs' }
+              { icon: Code, name: 'Developer', color: 'text-blue-400' },
+              { icon: ClipboardList, name: 'Product Owner', color: 'text-green-400' },
+              { icon: TestTube, name: 'Tester', color: 'text-purple-400' },
+              { icon: Shield, name: 'Security', color: 'text-red-400' },
+              { icon: Rocket, name: 'DevOps', color: 'text-orange-400' },
+              { icon: BookOpen, name: 'Docs', color: 'text-cyan-400' }
             ].map((agent) => (
               <div key={agent.name} className="text-center">
-                <div className="text-2xl mb-1">{agent.icon}</div>
+                <div className="flex justify-center mb-1">
+                  <agent.icon className={`w-6 h-6 ${agent.color}`} />
+                </div>
                 <div className="text-xs text-muted-foreground">{agent.name}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Onboarding Wizard */}
+      {showOnboarding && onboardingProject && (
+        <OnboardingWizard
+          projectId={onboardingProject.id}
+          projectName={onboardingProject.name}
+          projectPath={onboardingProject.path}
+          onComplete={handleOnboardingComplete}
+          onCancel={handleOnboardingCancel}
+        />
+      )}
     </div>
   )
 }

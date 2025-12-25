@@ -3,11 +3,29 @@ import { useAppStore } from '../stores/appStore'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import type { AgentMessage, FileNode } from '@shared/types'
+import type { AgentMessage, FileNode, AgentType } from '@shared/types'
 import { ThinkingBlock } from './ThinkingBlock'
 import { TodoList } from './TodoList'
 import { SubAgentPanel } from './SubAgentPanel'
 import { useToast } from './Toast'
+import {
+  X,
+  Plus,
+  Clock,
+  Trash2,
+  RefreshCw,
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  FileCode,
+  FileText,
+  FileJson,
+  FileType,
+  File,
+  Globe,
+  Settings
+} from 'lucide-react'
+import { AgentIcon } from '../utils/icons'
 
 const AGENT_NAMES: Record<string, string> = {
   developer: 'Developer Agent',
@@ -336,9 +354,7 @@ export function ChatPanel(): JSX.Element {
               onClick={() => setShowSessionHistory(false)}
               className="p-1 hover:bg-secondary rounded"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-4 h-4" />
             </button>
           </div>
           <div className="p-2">
@@ -346,9 +362,7 @@ export function ChatPanel(): JSX.Element {
               onClick={startNewChat}
               className="w-full p-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 flex items-center gap-2 justify-center"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+              <Plus className="w-4 h-4" />
               New Chat
             </button>
           </div>
@@ -375,9 +389,7 @@ export function ChatPanel(): JSX.Element {
                       }}
                       className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/20 rounded transition-opacity"
                     >
-                      <svg className="w-3 h-3 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      <Trash2 className="w-3 h-3 text-destructive" />
                     </button>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
@@ -396,14 +408,7 @@ export function ChatPanel(): JSX.Element {
         <div className="p-4 border-b border-border bg-card/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-lg">
-                {currentAgentType === 'developer' && '👨‍💻'}
-                {currentAgentType === 'product-owner' && '📋'}
-                {currentAgentType === 'tester' && '🧪'}
-                {currentAgentType === 'security' && '🔒'}
-                {currentAgentType === 'devops' && '🚀'}
-                {currentAgentType === 'documentation' && '📚'}
-              </span>
+              <AgentIcon agentType={currentAgentType as AgentType} size="lg" />
               <h2 className="font-semibold">{AGENT_NAMES[currentAgentType]}</h2>
               {filteredSessions.length > 0 && (
                 <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
@@ -419,18 +424,14 @@ export function ChatPanel(): JSX.Element {
                 }`}
                 title="Chat History"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Clock className="w-5 h-5" />
               </button>
               <button
                 onClick={startNewChat}
                 className="p-2 hover:bg-secondary rounded-lg transition-colors"
                 title="New Chat"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
+                <Plus className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -480,17 +481,13 @@ export function ChatPanel(): JSX.Element {
                 className="p-1 hover:bg-secondary rounded"
                 title="Refresh"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <RefreshCw className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setShowFilePanel(false)}
                 className="p-1 hover:bg-secondary rounded"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -526,9 +523,7 @@ export function ChatPanel(): JSX.Element {
                 key={file}
                 className="text-xs bg-primary/20 text-primary px-2 py-1 rounded flex items-center gap-1"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <FileText className="w-3 h-3" />
                 {file.split('/').pop()}
                 <button
                   onClick={() => toggleFileSelection(file)}
@@ -555,9 +550,7 @@ export function ChatPanel(): JSX.Element {
             }`}
             title="Add files to context"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
+            <Folder className="w-5 h-5" />
           </button>
           <textarea
             ref={inputRef}
@@ -814,26 +807,17 @@ function FileTreeNode({ node, selectedFiles, expandedDirs, onFileToggle, onDirTo
   const isExpanded = expandedDirs.has(node.path)
   const isSelected = selectedFiles.includes(node.path)
 
-  const getFileIcon = (ext?: string): string => {
-    const iconMap: Record<string, string> = {
-      '.ts': '📘',
-      '.tsx': '⚛️',
-      '.js': '📒',
-      '.jsx': '⚛️',
-      '.json': '📋',
-      '.md': '📝',
-      '.css': '🎨',
-      '.scss': '🎨',
-      '.html': '🌐',
-      '.py': '🐍',
-      '.go': '🔵',
-      '.rs': '🦀',
-      '.sql': '🗄️',
-      '.yaml': '⚙️',
-      '.yml': '⚙️',
-      '.sh': '📜'
-    }
-    return iconMap[ext || ''] || '📄'
+  const getFileIconComponent = (ext?: string): JSX.Element => {
+    const codeExts = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.sh']
+    const configExts = ['.yaml', '.yml']
+
+    if (ext === '.json') return <FileJson className="w-3 h-3 text-yellow-400" />
+    if (ext === '.md') return <FileText className="w-3 h-3 text-blue-400" />
+    if (ext === '.html') return <Globe className="w-3 h-3 text-orange-400" />
+    if (ext === '.css' || ext === '.scss') return <FileType className="w-3 h-3 text-pink-400" />
+    if (configExts.includes(ext || '')) return <Settings className="w-3 h-3 text-zinc-400" />
+    if (codeExts.includes(ext || '')) return <FileCode className="w-3 h-3 text-blue-400" />
+    return <File className="w-3 h-3 text-zinc-400" />
   }
 
   return (
@@ -847,15 +831,14 @@ function FileTreeNode({ node, selectedFiles, expandedDirs, onFileToggle, onDirTo
       >
         {isDir ? (
           <>
-            <svg
+            <ChevronRight
               className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            <span>{isExpanded ? '📂' : '📁'}</span>
+            />
+            {isExpanded ? (
+              <FolderOpen className="w-4 h-4 text-violet-400" />
+            ) : (
+              <Folder className="w-4 h-4 text-violet-400" />
+            )}
           </>
         ) : (
           <>
@@ -866,7 +849,7 @@ function FileTreeNode({ node, selectedFiles, expandedDirs, onFileToggle, onDirTo
               onClick={(e) => e.stopPropagation()}
               className="w-3 h-3 accent-primary"
             />
-            <span>{getFileIcon(node.extension)}</span>
+            {getFileIconComponent(node.extension)}
           </>
         )}
         <span className="truncate">{node.name}</span>

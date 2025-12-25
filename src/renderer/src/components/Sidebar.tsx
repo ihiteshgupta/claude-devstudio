@@ -1,25 +1,63 @@
 import { useState } from 'react'
 import { useAppStore, type ViewMode } from '../stores/appStore'
 import type { AgentType, Project } from '@shared/types'
+import {
+  Code,
+  ClipboardList,
+  TestTube,
+  Shield,
+  Rocket,
+  BookOpen,
+  LayoutDashboard,
+  MessageSquare,
+  Map,
+  Zap,
+  RefreshCw,
+  FileText,
+  CalendarDays,
+  GitBranch,
+  FolderOpen,
+  Plus,
+  X,
+  Wrench,
+  Lock,
+  ArrowRight,
+  type LucideIcon
+} from 'lucide-react'
 
-const AGENTS: { type: AgentType; name: string; icon: string; description: string }[] = [
-  { type: 'developer', name: 'Developer', icon: '👨‍💻', description: 'Code & architecture' },
-  { type: 'product-owner', name: 'Product Owner', icon: '📋', description: 'User stories & planning' },
-  { type: 'tester', name: 'Tester', icon: '🧪', description: 'Test cases & QA' },
-  { type: 'security', name: 'Security', icon: '🔒', description: 'Security audit' },
-  { type: 'devops', name: 'DevOps', icon: '🚀', description: 'CI/CD & infra' },
-  { type: 'documentation', name: 'Docs', icon: '📚', description: 'Documentation' }
+interface AgentConfig {
+  type: AgentType
+  name: string
+  icon: LucideIcon
+  description: string
+  color: string
+}
+
+const AGENTS: AgentConfig[] = [
+  { type: 'developer', name: 'Developer', icon: Code, description: 'Code & architecture', color: 'text-blue-400' },
+  { type: 'product-owner', name: 'Product Owner', icon: ClipboardList, description: 'User stories & planning', color: 'text-green-400' },
+  { type: 'tester', name: 'Tester', icon: TestTube, description: 'Test cases & QA', color: 'text-purple-400' },
+  { type: 'security', name: 'Security', icon: Shield, description: 'Security audit', color: 'text-red-400' },
+  { type: 'devops', name: 'DevOps', icon: Rocket, description: 'CI/CD & infra', color: 'text-orange-400' },
+  { type: 'documentation', name: 'Docs', icon: BookOpen, description: 'Documentation', color: 'text-cyan-400' }
 ]
 
-const VIEW_TABS: { mode: ViewMode; name: string; icon: string }[] = [
-  { mode: 'dashboard', name: 'Home', icon: '📊' },
-  { mode: 'chat', name: 'Chat', icon: '💬' },
-  { mode: 'roadmap', name: 'Roadmap', icon: '🗺️' },
-  { mode: 'task-queue', name: 'Tasks', icon: '⚡' },
-  { mode: 'workflows', name: 'Flows', icon: '🔄' },
-  { mode: 'stories', name: 'Stories', icon: '📝' },
-  { mode: 'sprints', name: 'Sprints', icon: '📅' },
-  { mode: 'git', name: 'Git', icon: '🔀' }
+interface ViewTab {
+  mode: ViewMode
+  name: string
+  icon: LucideIcon
+  color: string
+}
+
+const VIEW_TABS: ViewTab[] = [
+  { mode: 'dashboard', name: 'Home', icon: LayoutDashboard, color: 'text-violet-400' },
+  { mode: 'chat', name: 'Chat', icon: MessageSquare, color: 'text-blue-400' },
+  { mode: 'roadmap', name: 'Roadmap', icon: Map, color: 'text-green-400' },
+  { mode: 'task-queue', name: 'Tasks', icon: Zap, color: 'text-yellow-400' },
+  { mode: 'workflows', name: 'Flows', icon: RefreshCw, color: 'text-purple-400' },
+  { mode: 'stories', name: 'Stories', icon: FileText, color: 'text-pink-400' },
+  { mode: 'sprints', name: 'Sprints', icon: CalendarDays, color: 'text-orange-400' },
+  { mode: 'git', name: 'Git', icon: GitBranch, color: 'text-cyan-400' }
 ]
 
 export function Sidebar(): JSX.Element {
@@ -92,9 +130,7 @@ export function Sidebar(): JSX.Element {
             className="p-1 hover:bg-secondary/50 rounded transition-colors disabled:opacity-50 text-muted-foreground hover:text-foreground"
             title="Add project"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <Plus className="w-4 h-4" />
           </button>
         </div>
 
@@ -113,7 +149,7 @@ export function Sidebar(): JSX.Element {
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm">📁</span>
+                  <FolderOpen className="w-4 h-4 text-violet-400 flex-shrink-0" />
                   <span className="text-sm truncate">{project.name}</span>
                 </div>
                 <button
@@ -121,9 +157,7 @@ export function Sidebar(): JSX.Element {
                   className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/20 rounded transition-all"
                   title="Remove project"
                 >
-                  <svg className="w-3 h-3 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="w-3 h-3 text-destructive" />
                 </button>
               </div>
             ))
@@ -135,22 +169,25 @@ export function Sidebar(): JSX.Element {
       <div className="p-3 border-b border-border">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">View</h2>
         <div className="grid grid-cols-3 gap-1">
-          {VIEW_TABS.map((tab) => (
-            <button
-              key={tab.mode}
-              onClick={() => setViewMode(tab.mode)}
-              disabled={!currentProject}
-              className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                viewMode === tab.mode && currentProject
-                  ? 'bg-primary/20 text-primary'
-                  : 'hover:bg-secondary/50 text-muted-foreground hover:text-foreground'
-              }`}
-              title={tab.name}
-            >
-              <span className="text-base">{tab.icon}</span>
-              <span className="text-[10px] font-medium">{tab.name}</span>
-            </button>
-          ))}
+          {VIEW_TABS.map((tab) => {
+            const IconComponent = tab.icon
+            return (
+              <button
+                key={tab.mode}
+                onClick={() => setViewMode(tab.mode)}
+                disabled={!currentProject}
+                className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  viewMode === tab.mode && currentProject
+                    ? 'bg-primary/20 text-primary'
+                    : 'hover:bg-secondary/50 text-muted-foreground hover:text-foreground'
+                }`}
+                title={tab.name}
+              >
+                <IconComponent className={`w-4 h-4 ${viewMode === tab.mode && currentProject ? '' : tab.color}`} />
+                <span className="text-[10px] font-medium">{tab.name}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -169,21 +206,24 @@ export function Sidebar(): JSX.Element {
         <div className="flex-1 p-3 overflow-y-auto">
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">AI Agents</h2>
           <div className="space-y-0.5">
-            {AGENTS.map((agent) => (
-              <button
-                key={agent.type}
-                onClick={() => handleAgentChange(agent.type)}
-                disabled={!currentProject}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                  currentAgentType === agent.type && currentProject
-                    ? 'bg-primary/20 text-primary'
-                    : 'hover:bg-secondary/50'
-                }`}
-              >
-                <span className="text-sm">{agent.icon}</span>
-                <span className="text-sm font-medium truncate">{agent.name}</span>
-              </button>
-            ))}
+            {AGENTS.map((agent) => {
+              const IconComponent = agent.icon
+              return (
+                <button
+                  key={agent.type}
+                  onClick={() => handleAgentChange(agent.type)}
+                  disabled={!currentProject}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    currentAgentType === agent.type && currentProject
+                      ? 'bg-primary/20 text-primary'
+                      : 'hover:bg-secondary/50'
+                  }`}
+                >
+                  <IconComponent className={`w-4 h-4 ${agent.color}`} />
+                  <span className="text-sm font-medium truncate">{agent.name}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
       )}
@@ -194,16 +234,19 @@ export function Sidebar(): JSX.Element {
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Templates</h2>
           <div className="space-y-1">
             {[
-              { icon: '📋', name: 'Story → Tests', color: 'text-purple-400' },
-              { icon: '🔧', name: 'Story → Code', color: 'text-blue-400' },
-              { icon: '🔒', name: 'Review + Security', color: 'text-red-400' },
-              { icon: '🚀', name: 'Full Pipeline', color: 'text-green-400' }
-            ].map((template) => (
-              <div key={template.name} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-secondary/50 cursor-pointer">
-                <span className={template.color}>{template.icon}</span>
-                <span className="text-sm">{template.name}</span>
-              </div>
-            ))}
+              { icon: ClipboardList, name: 'Story → Tests', color: 'text-purple-400' },
+              { icon: Wrench, name: 'Story → Code', color: 'text-blue-400' },
+              { icon: Lock, name: 'Review + Security', color: 'text-red-400' },
+              { icon: ArrowRight, name: 'Full Pipeline', color: 'text-green-400' }
+            ].map((template) => {
+              const IconComponent = template.icon
+              return (
+                <div key={template.name} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-secondary/50 cursor-pointer">
+                  <IconComponent className={`w-4 h-4 ${template.color}`} />
+                  <span className="text-sm">{template.name}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

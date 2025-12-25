@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '../stores/appStore'
 import type { GitStatus, GitCommit, GitBranch, GitFileChange } from '@shared/types'
+import {
+  FolderX,
+  GitBranch as GitBranchIcon,
+  RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  X,
+  ArrowDown,
+  ArrowUp
+} from 'lucide-react'
 
 interface GitPanelProps {
   projectPath: string
@@ -232,7 +242,7 @@ export function GitPanel({ projectPath }: GitPanelProps): JSX.Element {
     return (
       <div className="flex flex-1 h-full bg-zinc-950 items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4">📁</div>
+          <FolderX className="w-12 h-12 mx-auto mb-4 text-zinc-600" />
           <p className="text-zinc-400 mb-2">Not a Git Repository</p>
           <p className="text-sm text-zinc-500">Initialize git in this project to use version control</p>
         </div>
@@ -248,7 +258,7 @@ export function GitPanel({ projectPath }: GitPanelProps): JSX.Element {
         <div className="p-4 border-b border-zinc-800">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-lg">🔀</span>
+              <GitBranchIcon className="w-5 h-5 text-cyan-400" />
               <span className="text-white font-medium">{status.current || 'HEAD'}</span>
             </div>
             <button
@@ -256,9 +266,7 @@ export function GitPanel({ projectPath }: GitPanelProps): JSX.Element {
               className="text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-800"
               title="Refresh"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+              <RefreshCw className="w-4 h-4" />
             </button>
           </div>
           {status.tracking && (
@@ -282,7 +290,11 @@ export function GitPanel({ projectPath }: GitPanelProps): JSX.Element {
             className="w-full px-4 py-2 flex items-center justify-between hover:bg-zinc-900"
           >
             <span className="text-sm font-medium text-zinc-300">BRANCHES</span>
-            <span className="text-zinc-500 text-xs">{showBranches ? '▼' : '▶'}</span>
+            {showBranches ? (
+              <ChevronDown className="w-4 h-4 text-zinc-500" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-zinc-500" />
+            )}
           </button>
           {showBranches && (
             <div className="px-2 pb-2 max-h-32 overflow-y-auto">
@@ -399,18 +411,18 @@ export function GitPanel({ projectPath }: GitPanelProps): JSX.Element {
             <button
               onClick={handlePull}
               disabled={isPulling}
-              className="bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white text-sm py-2 px-3 rounded transition-colors"
+              className="bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white text-sm py-2 px-3 rounded transition-colors flex items-center justify-center"
               title="Pull"
             >
-              {isPulling ? '...' : '↓'}
+              {isPulling ? '...' : <ArrowDown className="w-4 h-4" />}
             </button>
             <button
               onClick={handlePush}
               disabled={isPushing}
-              className="bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white text-sm py-2 px-3 rounded transition-colors"
+              className="bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 text-white text-sm py-2 px-3 rounded transition-colors flex items-center justify-center"
               title="Push"
             >
-              {isPushing ? '...' : '↑'}
+              {isPushing ? '...' : <ArrowUp className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -479,9 +491,9 @@ export function GitPanel({ projectPath }: GitPanelProps): JSX.Element {
                     <span className="text-sm text-zinc-300 font-mono">{selectedFile}</span>
                     <button
                       onClick={() => setSelectedFile(null)}
-                      className="text-zinc-500 hover:text-white text-xs"
+                      className="text-zinc-500 hover:text-white p-1 rounded hover:bg-zinc-800"
                     >
-                      ✕
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                   <pre className="flex-1 p-4 overflow-auto text-xs font-mono text-zinc-300 whitespace-pre">

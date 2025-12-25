@@ -757,6 +757,15 @@ export const IPC_CHANNELS = {
   SECURITY_SCANS: 'security:scans',
   SECURITY_SUMMARY: 'security:summary',
   SECURITY_EVENT: 'security:event',
+
+  // Onboarding
+  ONBOARDING_INIT: 'onboarding:init',
+  ONBOARDING_ANALYZE: 'onboarding:analyze',
+  ONBOARDING_GENERATE_PLAN: 'onboarding:generate-plan',
+  ONBOARDING_GET_PLAN: 'onboarding:get-plan',
+  ONBOARDING_UPDATE_PLAN: 'onboarding:update-plan',
+  ONBOARDING_APPLY_PLAN: 'onboarding:apply-plan',
+  ONBOARDING_EVENT: 'onboarding:event',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
